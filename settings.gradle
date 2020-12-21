@@ -1,0 +1,3 @@
+rootProject.name = 'actor'
+include ':actor-local',':actor-kafka'
+

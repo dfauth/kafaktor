@@ -1,0 +1,30 @@
+group 'com.github.dfauth'
+version '1.0-SNAPSHOT'
+
+ext {
+    slf4jApiVersion = '1.7.30'
+    tryCatchVersion = "1.0-SNAPSHOT"
+    logbackVersion = '1.2.3'
+    junitVersion = '4.12'
+}
+
+subprojects {
+    apply plugin: 'java'
+    apply plugin: 'maven'
+
+    sourceCompatibility = 11
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+    }
+
+    dependencies {
+        compile "org.slf4j:slf4j-api:$slf4jApiVersion"
+        compile "com.github.dfauth:trycatch:$tryCatchVersion"
+        testCompile "ch.qos.logback:logback-classic:$logbackVersion"
+        testCompile "junit:junit:$junitVersion"
+    }
+}
+
+
