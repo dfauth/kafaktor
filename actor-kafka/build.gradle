@@ -4,6 +4,7 @@ plugins {
 
 ext {
     avroVersion = '1.10.1'
+    kafkaVersion = '2.6.0'
 }
 
 repositories {
@@ -17,6 +18,7 @@ avro {
 
 dependencies {
     compile project(':actor-local')
+    compile "org.apache.kafka:kafka-clients:$kafkaVersion"
     compile "org.apache.avro:avro:$avroVersion"
     compile "org.apache.avro:avro-ipc:$avroVersion"
 }
