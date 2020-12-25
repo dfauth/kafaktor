@@ -43,7 +43,7 @@ public class TestCase {
             return f;
         });
 
-        String result = tryF.get(30, TimeUnit.SECONDS);
+        String result = tryF.get(3, TimeUnit.SECONDS);
         logger.info("result: {}",result);
         assertEquals(MESSAGE, result);
     }
