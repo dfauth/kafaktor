@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static com.github.dfauth.trycatch.TryCatch.tryCatchIgnore;
 
 public class KafkaTestUtil {
@@ -50,11 +51,23 @@ public class KafkaTestUtil {
             return this;
         }
 
-        public void runTest(Consumer<Map<String, Object>> consumer) {
+        public void runTestConsumer(Consumer<Map<String, Object>> consumer) {
             runTestFuture(p -> {
                 consumer.accept(p);
                 return CompletableFuture.completedFuture(null);
             });
+        }
+
+        public <T> T runTest(Function<Map<String, Object>, T> f) {
+            EmbeddedKafkaBroker broker = new EmbeddedKafkaBroker(1, true, partitions, topic);
+            broker.afterPropertiesSet();
+            Map<String, Object> p = new HashMap(this.config);
+            p.putAll(Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
+            try {
+                return f.apply(p);
+            } finally {
+                tryCatch(() ->broker.destroy());
+            }
         }
 
         public <T> CompletableFuture<T> runTestFuture(Function<Map<String, Object>, CompletableFuture<T>> f) {
