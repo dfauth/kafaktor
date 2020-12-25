@@ -1,0 +1,9 @@
+@namespace("com.github.dfauth.actor.kafka")
+protocol Actor {
+
+  record CreateActorEvent {
+    long timestamp;
+    string name;
+  }
+
+}

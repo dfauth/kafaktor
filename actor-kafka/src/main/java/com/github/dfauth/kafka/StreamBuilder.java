@@ -1,15 +1,19 @@
 package com.github.dfauth.kafka;
 
 import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,14 +21,9 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static com.github.dfauth.trycatch.TryCatch.tryCatch;
+import static com.github.dfauth.trycatch.TryCatch.*;
 
 public class StreamBuilder<K,V> {
-
-    interface Stream {
-        void start();
-        void stop();
-    }
 
     private static final Logger logger = LoggerFactory.getLogger(StreamBuilder.class);
     private static ExecutorService DEFAULT_EXECUTOR;
@@ -38,8 +37,20 @@ public class StreamBuilder<K,V> {
     private ExecutorService executor;
     private Collection<String> topics;
     private Map<String, Object> config;
-    private Deserializer<K> keyDeserializer;
-    private Deserializer<V> valueDeserializer;
+    private Serde<K> keySerde;
+    private Serde<V> valueSerde;
+    private ConsumerAssignmentListener<K,V> topicPartitionConsumer = c -> tp -> {};
+
+    public static <V> StreamBuilder<String,V> stringKeyBuilder() {
+        return new StreamBuilder<String, V>()
+                .withKeySerde(Serdes.String());
+    }
+
+    public static StreamBuilder<String,String> stringBuilder() {
+        return new StreamBuilder<String, String>()
+                .withKeySerde(Serdes.String())
+                .withValueSerde(Serdes.String());
+    }
 
     public static <K,V> StreamBuilder<K,V> builder() {
         return new StreamBuilder<>();
@@ -56,13 +67,74 @@ public class StreamBuilder<K,V> {
         return DEFAULT_EXECUTOR;
     }
 
-    public StreamBuilder<K, V> withKeyDeserializer(Deserializer<K> deserializer) {
-        keyDeserializer = deserializer;
+    public StreamBuilder<K, V> withKeySerde(Serde<K> serde) {
+        keySerde = serde;
         return this;
     }
 
+    public StreamBuilder<K, V> withValueSerde(Serde<V> serde) {
+        valueSerde = serde;
+        return this;
+    }
+
+    public StreamBuilder<K, V> withKeyDeserializer(Deserializer<K> deserializer) {
+        return withKeySerde(new Serde<K>() {
+            @Override
+            public Serializer<K> serializer() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Deserializer<K> deserializer() {
+                return deserializer;
+            }
+        });
+    }
+
     public StreamBuilder<K, V> withValueDeserializer(Deserializer<V> deserializer) {
-        valueDeserializer = deserializer;
+        return withValueSerde(new Serde<V>() {
+            @Override
+            public Serializer<V> serializer() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public Deserializer<V> deserializer() {
+                return deserializer;
+            }
+        });
+    }
+
+    public StreamBuilder<K, V> withKeySerializer(Serializer<K> serializer) {
+        return withKeySerde(new Serde<K>() {
+            @Override
+            public Serializer<K> serializer() {
+                return serializer;
+            }
+
+            @Override
+            public Deserializer<K> deserializer() {
+                throw new UnsupportedOperationException();
+            }
+        });
+    }
+
+    public StreamBuilder<K, V> withValueSerializer(Serializer<V> serializer) {
+        return withValueSerde(new Serde<V>() {
+            @Override
+            public Serializer<V> serializer() {
+                return serializer;
+            }
+
+            @Override
+            public Deserializer<V> deserializer() {
+                throw new UnsupportedOperationException();
+            }
+        });
+    }
+
+    public StreamBuilder<K, V> withAssignmentConsumer(ConsumerAssignmentListener<K,V> c) {
+        topicPartitionConsumer = c;
         return this;
     }
 
@@ -75,7 +147,7 @@ public class StreamBuilder<K,V> {
     }
 
     public StreamBuilder<K, V> withRecordConsumer(Consumer<ConsumerRecord<K,V>> recordConsumer) {
-        return withRecordConsumer(r -> tryCatch(() -> {
+        return withRecordProcessor(r -> tryCatch(() -> {
             recordConsumer.accept(r);
             return r.offset() + 1;
         }, e -> r.offset()+1));
@@ -117,12 +189,13 @@ public class StreamBuilder<K,V> {
 
     public Stream build() {
         ExecutorService executor = this.executor != null ? this.executor : getDefaultExecutor();
-        return new MultithreadedKafkaConsumer<>(config, topics, keyDeserializer, valueDeserializer, executor, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval);
+        return new MultithreadedKafkaConsumer<>(config, topics, keySerde, valueSerde, executor, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
     }
 
-    static class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, Stream {
+    static class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, Stream<K,V> {
 
         private final KafkaConsumer<K,V> consumer;
+        private final KafkaProducer<K,V> producer;
         private final ExecutorService executor;
         private final Map<TopicPartition, Task<K,V>> activeTasks = new HashMap<>();
         private final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
@@ -132,17 +205,20 @@ public class StreamBuilder<K,V> {
         private final Function<ConsumerRecord<K,V>, Long> recordProcessingFunction;
         private Duration pollingDuration;
         private Duration maxOffsetCommitInterval;
+        private ConsumerAssignmentListener<K,V> topicPartitionConsumer;
 
-        MultithreadedKafkaConsumer(Map<String, Object> config, Collection<String> topics, Deserializer<K> keyDeserializer, Deserializer<V> valueDeserializer, ExecutorService executor, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval) {
+        MultithreadedKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, ExecutorService executor, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, ConsumerAssignmentListener<K,V> topicPartitionConsumer) {
             this.topics = topics;
             this.executor = executor;
             this.recordProcessingFunction = recordProcessingFunction;
             this.pollingDuration = pollingDuration;
             this.maxOffsetCommitInterval = maxOffsetCommitInterval;
+            this.topicPartitionConsumer = topicPartitionConsumer;
             Map<String, Object> props = new HashMap<>(config);
             props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
             props.computeIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ignored -> "earliest");
-            consumer = new KafkaConsumer<>(props, keyDeserializer, valueDeserializer);
+            consumer = new KafkaConsumer<>(props, keySerde.deserializer(), valueSerde.deserializer());
+            producer = new KafkaProducer<>(props, keySerde.serializer(), valueSerde.serializer());
         }
 
         public void start() {
@@ -255,6 +331,9 @@ public class StreamBuilder<K,V> {
 
         @Override
         public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+            topicPartitionConsumer
+                    .withKafkaConsumer(consumer)
+                    .onAssignment(partitions);
             consumer.resume(partitions);
         }
 
@@ -262,6 +341,22 @@ public class StreamBuilder<K,V> {
         public void stop() {
             stopped.set(true);
             consumer.wakeup();
+        }
+
+        @Override
+        public CompletableFuture<RecordMetadata> send(String topic, K k, V v) {
+            CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
+            producer.send(new ProducerRecord<>(topic,k,v), (m, e) -> {
+                if(m != null && e == null) {
+                    f.complete(m);
+                } else if(m == null && e != null) {
+                    f.completeExceptionally(e);
+                } else {
+                    // should not happen
+                    logger.warn("producer received unhandled callback combination metadata: {}, exception: {}",m,e);
+                }
+            });
+            return f;
         }
 
     }
