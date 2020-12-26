@@ -91,7 +91,7 @@
                         <sourceDirectory>${project.basedir}/target/generated-sources/java/</sourceDirectory>
                     </javaSourceDirectories>
 <!--                    <avroOutputDirectory>${project.basedir}/target/avsc</avroOutputDirectory>-->
-<!--                    <templateDirectory>${project.basedir}/src/main/velocity/</templateDirectory>-->
+                    <templateDirectory>${project.basedir}/src/main/velocity/</templateDirectory>
                 </configuration>
                 <executions>
                     <execution>

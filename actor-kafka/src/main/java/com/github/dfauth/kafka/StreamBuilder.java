@@ -1,32 +1,28 @@
 package com.github.dfauth.kafka;
 
-import org.apache.kafka.clients.consumer.*;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.WakeupException;
-import org.apache.kafka.common.serialization.*;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.time.Instant;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static com.github.dfauth.trycatch.TryCatch.*;
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
 public class StreamBuilder<K,V> {
 
     private static final Logger logger = LoggerFactory.getLogger(StreamBuilder.class);
-    private static ExecutorService DEFAULT_EXECUTOR;
 
     private Duration maxOffsetCommitInterval = Duration.ofMillis(5000);
     private Duration pollingDuration = Duration.ofMillis(100);
@@ -54,17 +50,6 @@ public class StreamBuilder<K,V> {
 
     public static <K,V> StreamBuilder<K,V> builder() {
         return new StreamBuilder<>();
-    }
-
-    private static ExecutorService getDefaultExecutor() {
-        if(DEFAULT_EXECUTOR == null) {
-            synchronized (StreamBuilder.class) {
-                if(DEFAULT_EXECUTOR == null) {
-                    DEFAULT_EXECUTOR = Executors.newFixedThreadPool(4, r -> new Thread(null, r, StreamBuilder.class.getSimpleName()+"-defaultExecutor"));
-                }
-            }
-        }
-        return DEFAULT_EXECUTOR;
     }
 
     public StreamBuilder<K, V> withKeySerde(Serde<K> serde) {
@@ -188,176 +173,9 @@ public class StreamBuilder<K,V> {
     }
 
     public Stream build() {
-        ExecutorService executor = this.executor != null ? this.executor : getDefaultExecutor();
-        return new MultithreadedKafkaConsumer<>(config, topics, keySerde, valueSerde, executor, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
+        return executor != null ?
+                new MultithreadedKafkaConsumer<>(config, topics, keySerde, valueSerde, executor, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
+                new SimpleKafkaConsumer<>(config, topics, keySerde, valueSerde, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
     }
 
-    static class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, Stream<K,V> {
-
-        private final KafkaConsumer<K,V> consumer;
-        private final KafkaProducer<K,V> producer;
-        private final ExecutorService executor;
-        private final Map<TopicPartition, Task<K,V>> activeTasks = new HashMap<>();
-        private final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
-        private final AtomicBoolean stopped = new AtomicBoolean(false);
-        private final Collection<String> topics;
-        private Instant lastCommitTime = Instant.now();
-        private final Function<ConsumerRecord<K,V>, Long> recordProcessingFunction;
-        private Duration pollingDuration;
-        private Duration maxOffsetCommitInterval;
-        private ConsumerAssignmentListener<K,V> topicPartitionConsumer;
-
-        MultithreadedKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, ExecutorService executor, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, ConsumerAssignmentListener<K,V> topicPartitionConsumer) {
-            this.topics = topics;
-            this.executor = executor;
-            this.recordProcessingFunction = recordProcessingFunction;
-            this.pollingDuration = pollingDuration;
-            this.maxOffsetCommitInterval = maxOffsetCommitInterval;
-            this.topicPartitionConsumer = topicPartitionConsumer;
-            Map<String, Object> props = new HashMap<>(config);
-            props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-            props.computeIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ignored -> "earliest");
-            consumer = new KafkaConsumer<>(props, keySerde.deserializer(), valueSerde.deserializer());
-            producer = new KafkaProducer<>(props, keySerde.serializer(), valueSerde.serializer());
-        }
-
-        public void start() {
-            consumer.subscribe(topics, this);
-            new Thread(null, this, this.getClass().getSimpleName()+"-pollingThread-"+topics).start();
-        }
-
-        @Override
-        public void run() {
-            try {
-                while (!stopped.get()) {
-                    processRecords(consumer.poll(pollingDuration));
-                    checkActiveTasks();
-                    commitOffsets();
-                }
-            } catch (WakeupException we) {
-                if (!stopped.get())
-                    throw we;
-            } finally {
-                consumer.close();
-            }
-        }
-
-
-        private void processRecords(ConsumerRecords<K,V> records) {
-            if (records.count() > 0) {
-                List<TopicPartition> partitionsToPause = new ArrayList<>();
-                records.partitions().forEach(partition -> {
-                    List<ConsumerRecord<K,V>> partitionRecords = records.records(partition);
-                    Task<K,V> task = new Task(partitionRecords, recordProcessingFunction);
-                    partitionsToPause.add(partition);
-                    executor.submit(task);
-                    activeTasks.put(partition, task);
-                });
-                consumer.pause(partitionsToPause);
-            }
-        }
-
-        private void commitOffsets() {
-            try {
-                Instant now = Instant.now();
-                if (lastCommitTime.plus(maxOffsetCommitInterval).isBefore(now)) {
-                    if(!offsetsToCommit.isEmpty()) {
-                        consumer.commitSync(offsetsToCommit);
-                        offsetsToCommit.clear();
-                    }
-                    lastCommitTime = now;
-                }
-            } catch (RuntimeException e) {
-                logger.error("Failed to commit offsets: "+e.getMessage(), e);
-                throw e;
-            }
-        }
-
-
-        private void checkActiveTasks() {
-            List<TopicPartition> finishedTasksPartitions = new ArrayList<>();
-            activeTasks.forEach((partition, task) -> {
-                if (task.isFinished()) {
-                    finishedTasksPartitions.add(partition);
-                }
-                long offset = task.getCurrentOffset();
-                if (offset > 0) {
-                    offsetsToCommit.put(partition, new OffsetAndMetadata(offset));
-                }
-            });
-            finishedTasksPartitions.forEach(partition -> activeTasks.remove(partition));
-            consumer.resume(finishedTasksPartitions);
-        }
-
-
-        @Override
-        public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-
-            // 1. Stop all tasks handling records from revoked partitions
-            Map<TopicPartition, Task<K,V>> stoppedTask = new HashMap<>();
-            for (TopicPartition partition : partitions) {
-                Task task = activeTasks.remove(partition);
-                if (task != null) {
-                    task.stop();
-                    stoppedTask.put(partition, task);
-                }
-            }
-
-            // 2. Wait for stopped tasks to complete processing of current record
-            stoppedTask.forEach((partition, task) -> {
-                long offset = task.waitForCompletion();
-                if (offset > 0) {
-                    offsetsToCommit.put(partition, new OffsetAndMetadata(offset));
-                }
-            });
-
-
-            // 3. collect offsets for revoked partitions
-            Map<TopicPartition, OffsetAndMetadata> revokedPartitionOffsets = new HashMap<>();
-            partitions.forEach( partition -> {
-                OffsetAndMetadata offset = offsetsToCommit.remove(partition);
-                if (offset != null) {
-                    revokedPartitionOffsets.put(partition, offset);
-                }
-            });
-
-            // 4. commit offsets for revoked partitions
-            try {
-                consumer.commitSync(revokedPartitionOffsets);
-            } catch (RuntimeException e) {
-                logger.warn("Failed to commit offsets for revoked partitions: "+e.getMessage(), e);
-            }
-        }
-
-        @Override
-        public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            topicPartitionConsumer
-                    .withKafkaConsumer(consumer)
-                    .onAssignment(partitions);
-            consumer.resume(partitions);
-        }
-
-
-        public void stop() {
-            stopped.set(true);
-            consumer.wakeup();
-        }
-
-        @Override
-        public CompletableFuture<RecordMetadata> send(String topic, K k, V v) {
-            CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
-            producer.send(new ProducerRecord<>(topic,k,v), (m, e) -> {
-                if(m != null && e == null) {
-                    f.complete(m);
-                } else if(m == null && e != null) {
-                    f.completeExceptionally(e);
-                } else {
-                    // should not happen
-                    logger.warn("producer received unhandled callback combination metadata: {}, exception: {}",m,e);
-                }
-            });
-            return f;
-        }
-
-    }
 }
