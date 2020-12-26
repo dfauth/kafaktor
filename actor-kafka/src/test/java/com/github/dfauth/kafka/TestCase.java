@@ -2,10 +2,12 @@ package com.github.dfauth.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -33,7 +35,11 @@ public class TestCase {
                     .withTopic(TOPIC)
                     .withMessageConsumer(m ->
                             f.complete(m))
-                    .withAssignmentConsumer(c -> _p -> logger.info("partitions: {}", _p))
+                    .withAssignmentConsumer(c -> _p -> {
+                        Map<TopicPartition, Long> bo = c.beginningOffsets(_p);
+                        Map<TopicPartition, Long> eo = c.endOffsets(_p);
+                        _p.forEach(__p -> logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p)));
+                    })
                     .build();
             stream.start();
 
