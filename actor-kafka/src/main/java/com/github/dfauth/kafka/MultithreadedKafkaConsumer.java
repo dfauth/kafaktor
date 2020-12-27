@@ -1,5 +1,6 @@
 package com.github.dfauth.kafka;
 
+import com.github.dfauth.Lazy;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -24,7 +25,7 @@ class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceList
     private final Logger logger = LoggerFactory.getLogger(MultithreadedKafkaConsumer.class);
     
     private final KafkaConsumer<K,V> consumer;
-    private final KafkaProducer<K,V> producer;
+    private final Lazy<KafkaProducer<K,V>> lazyProducer;
     private final ExecutorService executor;
     private final Map<TopicPartition, Task<K,V>> activeTasks = new HashMap<>();
     private final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
@@ -47,7 +48,7 @@ class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceList
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         props.computeIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ignored -> "earliest");
         consumer = new KafkaConsumer<>(props, keySerde.deserializer(), valueSerde.deserializer());
-        producer = new KafkaProducer<>(props, keySerde.serializer(), valueSerde.serializer());
+        lazyProducer = Lazy.of(() -> new KafkaProducer<>(props, keySerde.serializer(), valueSerde.serializer()));
     }
 
     public void start() {
@@ -175,14 +176,14 @@ class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceList
     @Override
     public CompletableFuture<RecordMetadata> send(String topic, K k, V v) {
         CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
-        producer.send(new ProducerRecord<>(topic,k,v), (m, e) -> {
+        lazyProducer.get().send(new ProducerRecord<>(topic,k,v), (m, e) -> {
             if(m != null && e == null) {
                 f.complete(m);
             } else if(m == null && e != null) {
                 f.completeExceptionally(e);
             } else {
                 // should not happen
-                logger.warn("producer received unhandled callback combination metadata: {}, exception: {}",m,e);
+                logger.warn("lazyProducer received unhandled callback combination metadata: {}, exception: {}",m,e);
             }
         });
         return f;

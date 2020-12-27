@@ -1,5 +1,6 @@
 package com.github.dfauth.kafka;
 
+import com.github.dfauth.Lazy;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -25,7 +26,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
     private final Logger logger = LoggerFactory.getLogger(SimpleKafkaConsumer.class);
 
     private final KafkaConsumer<K,V> consumer;
-    private final KafkaProducer<K,V> producer;
+    private final Lazy<KafkaProducer<K,V>> lazyProducer;
     private final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private final Collection<String> topics;
@@ -45,7 +46,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         props.computeIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ignored -> "earliest");
         consumer = new KafkaConsumer<>(props, keySerde.deserializer(), valueSerde.deserializer());
-        producer = new KafkaProducer<>(props, keySerde.serializer(), valueSerde.serializer());
+        lazyProducer = Lazy.of(() -> new KafkaProducer<>(props, keySerde.serializer(), valueSerde.serializer()));
     }
 
     public void start() {
@@ -128,7 +129,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
     @Override
     public CompletableFuture<RecordMetadata> send(String topic, K k, V v) {
         CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
-        producer.send(new ProducerRecord<>(topic,k,v), (m, e) -> {
+        lazyProducer.get().send(new ProducerRecord<>(topic,k,v), (m, e) -> {
             if(m != null && e == null) {
                 f.complete(m);
             } else if(m == null && e != null) {
