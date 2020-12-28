@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 
 class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, Stream<K,V> {
@@ -31,13 +32,15 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private final Collection<String> topics;
     private Instant lastCommitTime = Instant.now();
+    private final Predicate<ConsumerRecord<K,V>> predicate;
     private final Function<ConsumerRecord<K,V>, Long> recordProcessingFunction;
     private Duration pollingDuration;
     private Duration maxOffsetCommitInterval;
     private ConsumerAssignmentListener<K,V> topicPartitionConsumer;
 
-    SimpleKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, ConsumerAssignmentListener<K,V> topicPartitionConsumer) {
+    SimpleKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, Predicate<ConsumerRecord<K, V>> predicate, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, ConsumerAssignmentListener<K,V> topicPartitionConsumer) {
         this.topics = topics;
+        this.predicate = predicate;
         this.recordProcessingFunction = recordProcessingFunction;
         this.pollingDuration = pollingDuration;
         this.maxOffsetCommitInterval = maxOffsetCommitInterval;
@@ -60,7 +63,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
             while (!stopped.get()) {
                 ConsumerRecords<K, V> records = consumer.poll(pollingDuration);
                 records.partitions().stream().forEach(tp -> {
-                    records.records(tp).stream().map(recordProcessingFunction).forEach(o -> {
+                    records.records(tp).stream().filter(predicate).map(recordProcessingFunction).forEach(o -> {
                         offsetsToCommit.compute(tp, (k,v) -> v == null ? new OffsetAndMetadata(o) : new OffsetAndMetadata(o, v.leaderEpoch(), v.metadata()));
                     });
                 });

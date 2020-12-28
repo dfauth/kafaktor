@@ -4,7 +4,7 @@ import org.apache.kafka.clients.producer.RecordMetadata;
 
 import java.util.concurrent.CompletableFuture;
 
-interface Stream<K,V> {
+public interface Stream<K,V> {
     void start();
     void stop();
     CompletableFuture<RecordMetadata> send(String topic, K k, V v);

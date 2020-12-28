@@ -1,6 +1,6 @@
 package com.github.dfauth.actor.kafka;
 
-public interface TestRecordDespatchable extends Despatchable {
+public interface ActorMessageDespatchable extends Despatchable {
 
     @Override
     default void despatch(DespatchableHandler h) {

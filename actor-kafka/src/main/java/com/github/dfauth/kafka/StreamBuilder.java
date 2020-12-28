@@ -1,7 +1,6 @@
 package com.github.dfauth.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -17,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
@@ -36,6 +36,7 @@ public class StreamBuilder<K,V> {
     private Serde<K> keySerde;
     private Serde<V> valueSerde;
     private ConsumerAssignmentListener<K,V> topicPartitionConsumer = c -> tp -> {};
+    private Predicate<ConsumerRecord<K, V>> predicate = r -> true;
 
     public static <V> StreamBuilder<String,V> stringKeyBuilder() {
         return new StreamBuilder<String, V>()
@@ -172,10 +173,25 @@ public class StreamBuilder<K,V> {
         return this;
     }
 
+    public StreamBuilder<K, V> withFilter(Predicate<ConsumerRecord<K,V>> p) {
+        this.predicate = p;
+        return this;
+    }
+
+    public StreamBuilder<K, V> withKeyFilter(Predicate<K> p) {
+        this.predicate = r -> p.test(r.key());
+        return this;
+    }
+
+    public StreamBuilder<K, V> withValueFilter(Predicate<V> p) {
+        this.predicate = r -> p.test(r.value());
+        return this;
+    }
+
     public Stream build() {
         return executor != null ?
-                new MultithreadedKafkaConsumer<>(config, topics, keySerde, valueSerde, executor, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
-                new SimpleKafkaConsumer<>(config, topics, keySerde, valueSerde, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
+                new MultithreadedKafkaConsumer<>(config, topics, keySerde, valueSerde, executor, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
+                new SimpleKafkaConsumer<>(config, topics, keySerde, valueSerde, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
     }
 
 }

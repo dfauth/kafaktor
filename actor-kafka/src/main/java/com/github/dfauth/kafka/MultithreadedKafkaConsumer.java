@@ -18,6 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 
 class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, Stream<K,V> {
@@ -32,14 +33,16 @@ class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceList
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private final Collection<String> topics;
     private Instant lastCommitTime = Instant.now();
+    private final Predicate<ConsumerRecord<K,V>> predicate;
     private final Function<ConsumerRecord<K,V>, Long> recordProcessingFunction;
     private Duration pollingDuration;
     private Duration maxOffsetCommitInterval;
     private ConsumerAssignmentListener<K,V> topicPartitionConsumer;
 
-    MultithreadedKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, ExecutorService executor, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, ConsumerAssignmentListener<K,V> topicPartitionConsumer) {
+    MultithreadedKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, ExecutorService executor, Predicate<ConsumerRecord<K,V>> predicate, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, ConsumerAssignmentListener<K,V> topicPartitionConsumer) {
         this.topics = topics;
         this.executor = executor;
+        this.predicate = predicate;
         this.recordProcessingFunction = recordProcessingFunction;
         this.pollingDuration = pollingDuration;
         this.maxOffsetCommitInterval = maxOffsetCommitInterval;
@@ -77,7 +80,7 @@ class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceList
         if (records.count() > 0) {
             List<TopicPartition> partitionsToPause = new ArrayList<>();
             records.partitions().forEach(partition -> {
-                List<ConsumerRecord<K,V>> partitionRecords = records.records(partition);
+                java.util.stream.Stream<ConsumerRecord<K, V>> partitionRecords = records.records(partition).stream().filter(predicate);
                 Task<K,V> task = new Task(partitionRecords, recordProcessingFunction);
                 partitionsToPause.add(partition);
                 executor.submit(task);

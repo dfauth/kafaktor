@@ -4,12 +4,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
@@ -17,7 +17,7 @@ public class Task<K,V> implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(Task.class);
 
-    private final List<ConsumerRecord<K,V>> records;
+    private final Stream<ConsumerRecord<K, V>> records;
     private volatile boolean stopped = false;
     private volatile boolean started = false;
     private volatile boolean finished = false;
@@ -26,7 +26,7 @@ public class Task<K,V> implements Runnable {
     private final AtomicLong currentOffset = new AtomicLong();
     private final Function<ConsumerRecord<K,V>, Long> recordProcessingPredicate;
 
-    public Task(List<ConsumerRecord<K,V>> records, Function<ConsumerRecord<K,V>, Long> recordProcessingPredicate) {
+    public Task(java.util.stream.Stream<ConsumerRecord<K,V>> records, Function<ConsumerRecord<K,V>, Long> recordProcessingPredicate) {
         this.records = records;
         this.recordProcessingPredicate = record -> tryCatch(() -> recordProcessingPredicate.apply(record), e -> record.offset()+1);
     }
@@ -39,10 +39,9 @@ public class Task<K,V> implements Runnable {
         started = true;
         startStopLock.unlock();
         
-        records.stream()
-                .filter(r -> !stopped)
-                .map(recordProcessingPredicate)
-                .forEach(offset -> currentOffset.set(offset));
+        records.filter(r -> !stopped)
+               .map(recordProcessingPredicate)
+               .forEach(offset -> currentOffset.set(offset));
 
         finished = true;
         completion.complete(currentOffset.get());

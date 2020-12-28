@@ -20,6 +20,7 @@
         <compiler-plugin.version>3.8.1</compiler-plugin.version>
         <assembly-plugin.version>3.1.0</assembly-plugin.version>
         <spring.version>2.6.4</spring.version>
+        <confluent.version>6.0.1</confluent.version>
     </properties>
 
     <dependencies>
@@ -64,6 +65,21 @@
             <artifactId>spring-kafka-test</artifactId>
             <version>${spring.version}</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.typesafe</groupId>
+            <artifactId>config</artifactId>
+            <version>1.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-avro-serializer</artifactId>
+            <version>${confluent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-schema-registry-client</artifactId>
+            <version>${confluent.version}</version>
         </dependency>
     </dependencies>
 
