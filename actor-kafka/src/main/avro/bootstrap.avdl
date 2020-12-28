@@ -1,7 +1,7 @@
 @namespace("com.github.dfauth.actor.kafka.bootstrap")
 protocol Bootstrap {
 
-  record ConfigFunctionEvent {
+  record BehaviorFactoryEvent {
       string implementation;
       string name;
   }

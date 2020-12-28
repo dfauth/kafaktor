@@ -1,18 +1,29 @@
 package com.github.dfauth.actor.kafka.bootstrap;
 
-import com.github.dfauth.actor.EnvelopeConsumer;
+import com.github.dfauth.actor.*;
 import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.function.Function;
-
-public class TestActorCreationFunction<T> implements Function<Config, EnvelopeConsumer<T>> {
+public class TestActorCreationFunction<T> implements BehaviorFactory<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(TestActorCreationFunction.class);
 
+    private final Config config;
+
+    public TestActorCreationFunction(Config config) {
+        this.config = config;
+    }
+
     @Override
-    public EnvelopeConsumer<T> apply(Config config) {
-        return e -> logger.info("received envelop: {}",e);
+    public Behavior<T> create(ActorContext<T> ctx) {
+        return new Behavior<T>(){
+
+            @Override
+            public Behavior onMessage(Envelope<T> e) {
+                logger.info("onMessage({})",e);
+                return this;
+            }
+        };
     }
 }

@@ -25,7 +25,7 @@ public class Behaviors {
         @Override
         public void receiveMessage(T payload) {}
 
-        public boolean isFInal() {
+        public boolean isFinal() {
             return true;
         }
     }

@@ -12,6 +12,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +30,7 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
 
     private static final String GROUP_ID = "groupId";
     private final SchemaRegistryClient schemaRegistryClient;
-    private final KafkaAvroDeserializer deserializer;
+    private final Deserializer<? extends Despatchable> deserializer;
     private ConfigUtils config;
     private Stream stream;
     private String name;
@@ -38,7 +39,8 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
         this.config = wrap(config);
         this.schemaRegistryClient = schemaRegistryClient;
         this.name = this.config.getString("actor.bootstrap").orElse("bootstrap");
-        this.deserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+        KafkaAvroDeserializer serializer = new KafkaAvroDeserializer(schemaRegistryClient);
+        this.deserializer = (topic, bytes) -> (Despatchable) serializer.deserialize(topic, bytes);
         this.deserializer.configure(Map.of("schema.registry.url", "dummy", "specific.avro.reader", true, "auto.register.schemas", true), false);
     }
 
@@ -73,12 +75,12 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
         logger.info("received record: {}",record);
         ActorMessage actorMessage = (ActorMessage) deserializer.deserialize(record.topic(), record.value());
         logger.info("received actor message: {}",actorMessage);
-        Despatchable payload = (Despatchable) actorMessage.mapPayload((topic, data) -> deserializer.deserialize(topic, data));
+        Despatchable payload = actorMessage.mapPayload(deserializer::deserialize);
         payload.despatch(this);
     }
 
     @Override
-    public void handle(ConfigFunctionEventDespatchable configFunction) {
+    public void handle(BehaviorFactoryEventDespatchable configFunction) {
         logger.info("received payload message: {}",configFunction);
         ActorRef actorRef = configFunction.apply(config.nested());
         logger.info("created actor ref: {}",actorRef);

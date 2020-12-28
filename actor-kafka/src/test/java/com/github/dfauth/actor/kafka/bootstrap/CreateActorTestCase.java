@@ -1,7 +1,6 @@
 package com.github.dfauth.actor.kafka.bootstrap;
 
 import com.github.dfauth.actor.kafka.ActorMessage;
-import com.github.dfauth.actor.kafka.ActorMessageDespatchable;
 import com.github.dfauth.kafka.Stream;
 import com.github.dfauth.kafka.StreamBuilder;
 import com.typesafe.config.Config;
@@ -20,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Map;
 
+import static com.github.dfauth.actor.kafka.ActorMessageDespatchable.envelope;
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
@@ -39,11 +39,8 @@ public class CreateActorTestCase {
         String actorRef = "bootstrap";
         KafkaAvroSerializer serializer = new KafkaAvroSerializer(schemaRegistryClient);
         serializer.configure(serdeConfig, false);
-        ConfigFunctionEvent msg = ConfigFunctionEvent.newBuilder().setImplementation(TestActorCreationFunction.class.getCanonicalName()).setName("fred").build();
-        ActorMessage env = ActorMessageDespatchable.envelope(actorRef, msg, serializer);
-//        ActorMessage env = ActorMessage.newBuilder()
-//                .setPayload(ByteBuffer.wrap(serializer.serialize(msg.getSchema().getFullName(), msg)))
-//                .setPayloadSchema(msg.getSchema().getFullName()).setTimestamp(Instant.now().toEpochMilli()).setKey(actorRef).setMetadata(Collections.emptyMap()).build();
+        BehaviorFactoryEvent msg = BehaviorFactoryEvent.newBuilder().setImplementation(TestActorCreationFunction.class.getCanonicalName()).setName("fred").build();
+        ActorMessage env = envelope(actorRef, msg, (t,r) -> serializer.serialize(t,r));
 
         Config config = ConfigFactory.parseString(String.format("{kafka.topic: %s}", TOPIC));
         embeddedKafkaWithTopic(TOPIC).runTestConsumer(p -> tryCatch(() -> {
