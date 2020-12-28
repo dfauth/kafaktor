@@ -1,8 +1,0 @@
-@namespace("com.github.dfauth.actor.kafka.create")
-protocol CreateActor {
-
-  record ConfigFunctionEvent {
-      string implementation;
-  }
-
-}

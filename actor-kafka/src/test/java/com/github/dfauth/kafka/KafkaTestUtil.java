@@ -23,7 +23,7 @@ public class KafkaTestUtil {
         return new EmbeddedKafkaRunner(topic, config);
     }
 
-    static class EmbeddedKafkaRunner {
+    public static class EmbeddedKafkaRunner {
 
         private final String topic;
         private Map<String, Object> config;
