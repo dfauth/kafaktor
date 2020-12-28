@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-public interface ActorMessageDespatchable {
+public interface ActorMessageDespatchable extends EnveloperHandler {
 
     default <T extends Despatchable> T mapPayload(BiFunction<String, byte[], T> f) {
         return f.apply(getPayloadSchema(), getPayload().array());
@@ -19,14 +19,4 @@ public interface ActorMessageDespatchable {
     ByteBuffer getPayload();
 
     String getPayloadSchema();
-
-    static <T extends SpecificRecordBase> ActorMessage envelope(String key, T record, Serializer<T> serializer) {
-        return envelope(key, Collections.emptyMap(), record, serializer);
-    }
-
-    static <T extends SpecificRecordBase> ActorMessage envelope(String key, Map<String, String> metadata, T record, Serializer<T> serializer) {
-        return ActorMessage.newBuilder().setPayload(ByteBuffer.wrap(serializer.serialize(record.getSchema().getFullName(), record)))
-                .setPayloadSchema(record.getSchema().getFullName()).setTimestamp(Instant.now().toEpochMilli()).setKey(key).setMetadata(metadata).build();
-    }
-
 }
