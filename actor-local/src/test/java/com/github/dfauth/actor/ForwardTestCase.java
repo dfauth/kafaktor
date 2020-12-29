@@ -8,12 +8,12 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static com.github.dfauth.actor.FowardTestCase.IntermediateActor.initial;
+import static com.github.dfauth.actor.ForwardTestCase.IntermediateActor.initial;
 import static org.junit.Assert.assertEquals;
 
-public class FowardTestCase {
+public class ForwardTestCase {
 
-    private static final Logger logger = LoggerFactory.getLogger(FowardTestCase.class);
+    private static final Logger logger = LoggerFactory.getLogger(ForwardTestCase.class);
     private static final String REF_MSG = "Hello World";
 
     @Test
@@ -33,7 +33,7 @@ public class FowardTestCase {
         assertEquals(ref.id()+" replies with "+ref0.id()+" replies with "+REF_MSG, result);
     }
 
-    static class IntermediateActor implements BehaviorFactory<String> {
+    static class IntermediateActor implements Behavior.Factory<String> {
 
         private final ActorRef<String> ref;
 
@@ -51,7 +51,7 @@ public class FowardTestCase {
         }
 
         @Override
-        public Behavior<String> create(ActorContext<String> ctx) {
+        public Behavior<String> withActorContext(ActorContext<String> ctx) {
             return (EnvelopeConsumer<String>) e -> receive(ctx, e);
         }
     }

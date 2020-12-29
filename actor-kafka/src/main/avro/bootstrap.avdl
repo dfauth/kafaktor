@@ -2,7 +2,12 @@
 protocol Bootstrap {
 
   record BehaviorFactoryEvent {
-      string implementation;
+      string implementationClassName;
+      string name;
+  }
+
+  record MessageConsumerEvent {
+      string implementationClassName;
       string name;
   }
 

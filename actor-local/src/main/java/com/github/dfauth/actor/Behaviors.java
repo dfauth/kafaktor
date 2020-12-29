@@ -2,8 +2,14 @@ package com.github.dfauth.actor;
 
 public class Behaviors {
 
-    public static <T> Behavior<T> FINAL() {
-        return new Final();
+    public static final <T> Behavior<T> FINAL() {
+        return new Final<T>(){
+
+            @Override
+            public Behavior<T> onMessage(Envelope e) {
+                return this;
+            }
+        };
     }
 
     interface Penultimate<T> extends Behavior<T> {
@@ -20,12 +26,9 @@ public class Behaviors {
         }
     }
 
-    static class Final<T> implements MessageConsumer<T> {
+    public interface Final<T> extends Behavior<T> {
 
-        @Override
-        public void receiveMessage(T payload) {}
-
-        public boolean isFinal() {
+        default boolean isFinal() {
             return true;
         }
     }

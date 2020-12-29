@@ -20,7 +20,7 @@ public class LocalActorDelegate<T> implements ActorDelegate<T> {
     }
 
     @Override
-    public ActorRef<T> fromBehaviorFactory(BehaviorFactory<T> f) {
+    public ActorRef<T> fromBehaviorFactory(Behavior.Factory<T> f) {
         ActorImpl<T> actor = null;
         try {
             actor = ActorContextImpl.<T>of(f);

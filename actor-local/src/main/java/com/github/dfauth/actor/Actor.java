@@ -16,7 +16,7 @@ public class Actor<T> {
         return Actor.<T>loadDelegate().fromBehavior(c);
     }
 
-    public static <T> ActorRef<T> fromBehaviorFactory(BehaviorFactory<T> f) {
+    public static <T> ActorRef<T> fromBehaviorFactory(Behavior.Factory<T> f) {
         return Actor.<T>loadDelegate().fromBehaviorFactory(f);
     }
 

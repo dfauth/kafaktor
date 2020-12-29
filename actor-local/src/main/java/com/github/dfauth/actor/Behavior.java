@@ -13,4 +13,8 @@ public interface Behavior<T> extends Function<Envelope<T>, Behavior<T>> {
     }
 
     Behavior<T> onMessage(Envelope<T> e);
+
+    interface Factory<T> extends ActorContextAware<T,Behavior<T>> {}
 }
+
+

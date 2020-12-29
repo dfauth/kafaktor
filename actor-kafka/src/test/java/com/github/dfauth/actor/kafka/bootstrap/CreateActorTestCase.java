@@ -40,7 +40,7 @@ public class CreateActorTestCase {
 
         String actorRef = "bootstrap";
 
-        BehaviorFactoryEvent msg = BehaviorFactoryEvent.newBuilder().setImplementation(TestActorCreationFunction.class.getCanonicalName()).setName("fred").build();
+        BehaviorFactoryEvent msg = BehaviorFactoryEvent.newBuilder().setImplementationClassName(TestActorCreationFunction.class.getCanonicalName()).setName("fred").build();
         ActorMessage env = envelopeHandler.envelope(actorRef, msg);
 
         Config config = ConfigFactory.parseString(String.format("{kafka.topic: %s}", TOPIC));
@@ -49,7 +49,7 @@ public class CreateActorTestCase {
             new BootstrapActor(p.entrySet().stream().reduce(config,
                     (c, e) -> c.withValue("kafka." + e.getKey(), ConfigValueFactory.fromAnyRef(e.getValue())),
                     (c1, c2) -> c1.withFallback(c2)
-            ), schemaRegistryClient).start();
+            ), deserializer).start();
             stream.start();
             Thread.sleep(2 * 1000);
             stream.send(TOPIC, env.getKey(), env);

@@ -19,10 +19,10 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
     private boolean terminate = true;
     private final String id;
 
-    public ActorContextImpl(String id, BehaviorFactory<T> behaviorFactory, ExecutorService executor) {
+    public ActorContextImpl(String id, Behavior.Factory<T> behaviorFactory, ExecutorService executor) {
         validateId(id);
         this.id = id;
-        this.behaviour = behaviorFactory.create(this);
+        this.behaviour = behaviorFactory.withActorContext(this);
         this.executor = executor;
     }
 
@@ -37,11 +37,11 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
         terminate = true;
     }
 
-    public static <T> ActorImpl<T> of(BehaviorFactory<T> f) {
+    public static <T> ActorImpl<T> of(Behavior.Factory<T> f) {
         return of(f, defaultExecutor());
     }
 
-    public static <T> ActorImpl<T> of(BehaviorFactory<T> f, ExecutorService executorService) {
+    public static <T> ActorImpl<T> of(Behavior.Factory<T> f, ExecutorService executorService) {
         return new ActorContextImpl<>(anonymousId(), f, executorService);
     }
 

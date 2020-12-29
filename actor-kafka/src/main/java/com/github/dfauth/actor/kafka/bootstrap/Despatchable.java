@@ -1,5 +1,7 @@
 package com.github.dfauth.actor.kafka.bootstrap;
 
-public interface Despatchable {
+import org.apache.avro.specific.SpecificRecord;
+
+public interface Despatchable extends SpecificRecord {
     void despatch(DespatchableHandler h);
 }

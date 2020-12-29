@@ -2,23 +2,22 @@ package com.github.dfauth.actor.kafka.bootstrap;
 
 import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.kafka.ActorMessage;
+import com.github.dfauth.actor.kafka.DeserializingFunction;
 import com.github.dfauth.kafka.Stream;
 import com.github.dfauth.kafka.StreamBuilder;
 import com.github.dfauth.utils.ConfigUtils;
 import com.typesafe.config.Config;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import static com.github.dfauth.utils.ConfigUtils.wrap;
@@ -29,19 +28,15 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
     private static final Logger logger = LoggerFactory.getLogger(BootstrapActor.class);
 
     private static final String GROUP_ID = "groupId";
-    private final SchemaRegistryClient schemaRegistryClient;
-    private final Deserializer<? extends Despatchable> deserializer;
+    private final DeserializingFunction<ActorMessage> deserializer;
     private ConfigUtils config;
     private Stream stream;
     private String name;
 
-    public BootstrapActor(Config config, SchemaRegistryClient schemaRegistryClient) {
+    public BootstrapActor(Config config, DeserializingFunction<ActorMessage> deserializer) {
         this.config = wrap(config);
-        this.schemaRegistryClient = schemaRegistryClient;
+        this.deserializer = deserializer;
         this.name = this.config.getString("actor.bootstrap").orElse("bootstrap");
-        KafkaAvroDeserializer serializer = new KafkaAvroDeserializer(schemaRegistryClient);
-        this.deserializer = (topic, bytes) -> (Despatchable) serializer.deserialize(topic, bytes);
-        this.deserializer.configure(Map.of("schema.registry.url", "dummy", "specific.avro.reader", true, "auto.register.schemas", true), false);
     }
 
     public void start() {
@@ -73,16 +68,24 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
     @Override
     public void accept(ConsumerRecord<String, byte[]> record) {
         logger.info("received record: {}",record);
-        ActorMessage actorMessage = (ActorMessage) deserializer.deserialize(record.topic(), record.value());
+        ActorMessage actorMessage = deserializer.deserialize(record.topic(), record.value());
         logger.info("received actor message: {}",actorMessage);
-        Despatchable payload = actorMessage.mapPayload(deserializer::deserialize);
+        BiFunction<String, byte[], ? extends Despatchable> xdeserializer = (t,p) -> (Despatchable) deserializer.deserialize(t,p);
+        Despatchable payload = actorMessage.mapPayload(xdeserializer);
         payload.despatch(this);
     }
 
     @Override
-    public void handle(BehaviorFactoryEventDespatchable configFunction) {
-        logger.info("received payload message: {}",configFunction);
-        ActorRef actorRef = configFunction.apply(config.nested());
-        logger.info("created actor ref: {}",actorRef);
+    public void handle(BehaviorFactoryEventDespatchable event) {
+        logger.info("received payload message: {}",event);
+        ActorRef actorRef = event.apply(config.nested());
+        logger.info("created BehaviorFactory actor ref: {}",actorRef);
+    }
+
+    @Override
+    public void handle(MessageConsumerEventDespatchable event) {
+        logger.info("received payload message: {}",event);
+        ActorRef actorRef = event.apply(config.nested());
+        logger.info("created MessageConsumer actor ref: {}",actorRef);
     }
 }

@@ -8,5 +8,5 @@ public interface ActorDelegate<T> {
 
     ActorRef<T> fromBehavior(Behavior<T> c);
 
-    ActorRef<T> fromBehaviorFactory(BehaviorFactory<T> f);
+    ActorRef<T> fromBehaviorFactory(Behavior.Factory<T> f);
 }
