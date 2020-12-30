@@ -102,6 +102,7 @@
                 <configuration>
                     <stringType>String</stringType>
                     <sourceDirectory>${project.basedir}/src/main/avro/</sourceDirectory>
+                    <testSourceDirectory>${project.basedir}/src/test/avro/</testSourceDirectory>
                     <outputDirectory>${project.basedir}/target/generated-sources/java/</outputDirectory>
                     <javaSourceDirectories>
                         <sourceDirectory>${project.basedir}/target/generated-sources/java/</sourceDirectory>

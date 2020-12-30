@@ -4,6 +4,7 @@ import com.github.dfauth.actor.kafka.ActorMessage;
 import com.github.dfauth.actor.kafka.EnveloperHandlerImpl;
 import com.github.dfauth.actor.kafka.confluent.AvroDeserializer;
 import com.github.dfauth.actor.kafka.confluent.AvroSerializer;
+import com.github.dfauth.actor.kafka.test.GreetingRequest;
 import com.github.dfauth.kafka.Stream;
 import com.github.dfauth.kafka.StreamBuilder;
 import com.typesafe.config.Config;
@@ -17,16 +18,15 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.Map;
 
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
 
-public class CreateActorTestCase {
+public class EnvelopeConsumerActorTestCase {
 
-    private static final Logger logger = LoggerFactory.getLogger(CreateActorTestCase.class);
+    private static final Logger logger = LoggerFactory.getLogger(EnvelopeConsumerActorTestCase.class);
     private static final String TOPIC = "topic";
     private static final String GROUP_ID = "groupId";
 
@@ -36,14 +36,14 @@ public class CreateActorTestCase {
     private EnveloperHandlerImpl envelopeHandler = new EnveloperHandlerImpl(Serdes.serdeFrom(serializer, deserializer));
 
     @Test
-    public void testCreateActor() throws IOException {
+    public void testIt() {
 
         String actorRef = "bootstrap";
 
-        BehaviorFactoryEvent msg = BehaviorFactoryEvent.newBuilder().setImplementationClassName(TestActorCreationFunction.class.getCanonicalName()).setName("fred").build();
+        EnvelopeConsumerEvent msg = EnvelopeConsumerEvent.newBuilder().setImplementationClassName(EnvelopeConsumerTestActor.class.getCanonicalName()).setName("fred").build();
         ActorMessage env = envelopeHandler.envelope(actorRef, msg);
 
-        Config config = ConfigFactory.parseString(String.format("{kafka.topic: %s}", TOPIC));
+        Config config = ConfigFactory.parseString(String.format(CONFIG, TOPIC));
         embeddedKafkaWithTopic(TOPIC).runTestConsumer(p -> tryCatch(() -> {
             Stream<String, ActorMessage> stream = createStream(p);
             new BootstrapActor(p.entrySet().stream().reduce(config,
@@ -53,6 +53,8 @@ public class CreateActorTestCase {
             stream.start();
             Thread.sleep(2 * 1000);
             stream.send(TOPIC, env.getKey(), env);
+            ActorMessage greeting = envelopeHandler.envelope("fred", GreetingRequest.newBuilder().setName("Fred").build());
+            stream.send(TOPIC, greeting.getKey(), greeting);
             Thread.sleep(10 * 1000);
         }));
 
@@ -67,5 +69,12 @@ public class CreateActorTestCase {
                 .withTopic(TOPIC)
                 .build();
     }
+
+    private static final String CONFIG = "{\n" +
+            "  kafka {\n" +
+            "    topic: %s\n" +
+            "    schema.registry.url: \"http://localhost:8080\"\n" +
+            "  }\n" +
+            "}";
 
 }

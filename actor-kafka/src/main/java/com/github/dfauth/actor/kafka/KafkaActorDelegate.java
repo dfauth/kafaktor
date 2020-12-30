@@ -1,10 +1,16 @@
 package com.github.dfauth.actor.kafka;
 
 import com.github.dfauth.actor.*;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import java.util.Optional;
 
 public class KafkaActorDelegate<T> implements ActorDelegate<T> {
+
+    Config config = ConfigFactory.load()
+            .withFallback(ConfigFactory.systemProperties())
+            .withFallback(ConfigFactory.systemEnvironment());
 
     @Override
     public ActorRef<T> fromMessageConsumer(MessageConsumer<T> c) {
@@ -25,6 +31,7 @@ public class KafkaActorDelegate<T> implements ActorDelegate<T> {
     public ActorRef<T> fromBehaviorFactory(Behavior.Factory<T> f) {
         ActorImpl<T> actor = null;
         try {
+            //TODO
             actor = ActorContextImpl.<T>of(f);
             return actor.ref();
         } finally {

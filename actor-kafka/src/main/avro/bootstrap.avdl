@@ -11,4 +11,9 @@ protocol Bootstrap {
       string name;
   }
 
+  record EnvelopeConsumerEvent {
+      string implementationClassName;
+      string name;
+  }
+
 }

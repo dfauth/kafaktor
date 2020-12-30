@@ -88,4 +88,11 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
         ActorRef actorRef = event.apply(config.nested());
         logger.info("created MessageConsumer actor ref: {}",actorRef);
     }
+
+    @Override
+    public void handle(EnvelopeConsumerEventDespatchable event) {
+        logger.info("received payload message: {}",event);
+        ActorRef actorRef = event.apply(config.nested());
+        logger.info("created EnvelopeConsumer actor ref: {}",actorRef);
+    }
 }
