@@ -21,6 +21,8 @@
         <assembly-plugin.version>3.1.0</assembly-plugin.version>
         <spring.version>2.6.4</spring.version>
         <confluent.version>6.0.1</confluent.version>
+        <config.version>1.4.1</config.version>
+        <guice.version>4.2.3</guice.version>
     </properties>
 
     <dependencies>
@@ -69,7 +71,7 @@
         <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
-            <version>1.4.1</version>
+            <version>${config.version}</version>
         </dependency>
         <dependency>
             <groupId>io.confluent</groupId>
@@ -80,6 +82,11 @@
             <groupId>io.confluent</groupId>
             <artifactId>kafka-schema-registry-client</artifactId>
             <version>${confluent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>${guice.version}</version>
         </dependency>
     </dependencies>
 

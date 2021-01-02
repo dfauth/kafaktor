@@ -1,5 +1,6 @@
 package com.github.dfauth.kafka;
 
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -188,10 +189,34 @@ public class StreamBuilder<K,V> {
         return this;
     }
 
+    public StreamBuilder<K, V> withGroupId(String groupId) {
+        this.config.compute(ConsumerConfig.GROUP_ID_CONFIG, (k,v) -> {
+            if(v != null) {
+                logger.warn("overriding previous {} of {} with {}", k,v,groupId);
+            }
+            return groupId;
+        });
+        return this;
+    }
+
     public Stream build() {
         return executor != null ?
                 new MultithreadedKafkaConsumer<>(config, topics, keySerde, valueSerde, executor, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
                 new SimpleKafkaConsumer<>(config, topics, keySerde, valueSerde, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
     }
 
+    public StreamBuilder<K,V> copyOf(Consumer<StreamBuilder<K, V>> consumer) {
+        StreamBuilder<K,V> clone = new StreamBuilder<K,V>().withKeySerde(keySerde)
+                .withValueSerde(valueSerde)
+                .withAssignmentConsumer(topicPartitionConsumer)
+                .withFilter(predicate)
+                .withOffsetCommitInterval(maxOffsetCommitInterval)
+                .withPollingDuration(pollingDuration)
+                .withProperties(config)
+                .withRecordProcessor(recordProcessingFunction)
+                .withTopics(topics)
+                .withExecutor(executor);
+        consumer.accept(clone);
+        return clone;
+    }
 }

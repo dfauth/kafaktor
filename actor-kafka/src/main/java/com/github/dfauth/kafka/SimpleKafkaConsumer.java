@@ -21,6 +21,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
+
 
 class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, Stream<K,V> {
 
@@ -53,7 +55,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
     }
 
     public void start() {
-        consumer.subscribe(topics, this);
+        tryCatch(() -> consumer.subscribe(topics, this));
         new Thread(null, this, this.getClass().getSimpleName()+"-pollingThread-"+topics).start();
     }
 
