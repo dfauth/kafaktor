@@ -10,6 +10,8 @@ import com.github.dfauth.trycatch.Try;
 import com.github.dfauth.utils.MyConfig;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import com.google.inject.Key;
+import com.google.inject.TypeLiteral;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +37,7 @@ public class KafkaActorDelegate<T extends SpecificRecordBase> implements ActorDe
     public KafkaActorDelegate() {
         Injector injector = Guice.createInjector(MyModules.getOrElse(new CommonModule(), new ProdModule()));
         streamBuilder = injector.getInstance(StreamBuilder.class);
-        envelopeHandler = injector.getInstance(EnvelopeHandlerImpl.class);
+        envelopeHandler = (EnvelopeHandlerImpl<T>) injector.getInstance(Key.get(new TypeLiteral<EnvelopeHandlerImpl<? extends SpecificRecordBase>>(){}));
         config = injector.getInstance(MyConfig.class);
     }
 

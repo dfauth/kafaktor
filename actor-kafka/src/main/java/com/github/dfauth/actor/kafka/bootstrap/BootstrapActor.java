@@ -15,6 +15,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -33,6 +34,7 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
     private Stream stream;
     private String name;
 
+    @Inject
     public BootstrapActor(Config config, DeserializingFunction<ActorMessage> deserializer) {
         this.config = wrap(config);
         this.deserializer = deserializer;
