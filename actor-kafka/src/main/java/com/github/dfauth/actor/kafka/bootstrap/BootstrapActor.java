@@ -2,24 +2,16 @@ package com.github.dfauth.actor.kafka.bootstrap;
 
 import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.kafka.ActorMessage;
-import com.github.dfauth.actor.kafka.DeserializingFunction;
 import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
 import com.github.dfauth.kafka.Stream;
-import com.github.dfauth.kafka.StreamBuilder;
 import com.github.dfauth.utils.ConfigUtils;
 import com.typesafe.config.Config;
 import org.apache.avro.specific.SpecificRecordBase;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.Serdes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -31,14 +23,14 @@ public class BootstrapActor<T extends SpecificRecordBase> implements Consumer<Co
     private static final Logger logger = LoggerFactory.getLogger(BootstrapActor.class);
 
     private static final String GROUP_ID = "groupId";
-    private final StreamBuilder<String,byte[]> streamBuilder;
+    private final Stream.Builder<String,byte[]> streamBuilder;
     private final EnvelopeHandlerImpl<T> envelopeHandler;
     private ConfigUtils config;
     private Stream stream;
     private String name;
 
     @Inject
-    public BootstrapActor(Config config, StreamBuilder<String,byte[]> streamBuilder, EnvelopeHandlerImpl<T> envelopeHandlerImpl) {
+    public BootstrapActor(Config config, Stream.Builder<String,byte[]> streamBuilder, EnvelopeHandlerImpl<T> envelopeHandlerImpl) {
         this.config = wrap(config);
         this.streamBuilder = streamBuilder;
         this.envelopeHandler = envelopeHandlerImpl;
@@ -46,14 +38,14 @@ public class BootstrapActor<T extends SpecificRecordBase> implements Consumer<Co
     }
 
     public void start() {
-        this.stream = streamBuilder.copyOf(b ->
+        this.stream = streamBuilder.build(b ->
                         b.withGroupId(GROUP_ID)
                         .withTopic(config.map(c -> c.getString("kafka.topic")))
                         .withKeyFilter(
                                 k -> name.equals(k)
                         )
                         .withRecordConsumer(this)
-        ).build();
+        );
         stream.start();
     }
 

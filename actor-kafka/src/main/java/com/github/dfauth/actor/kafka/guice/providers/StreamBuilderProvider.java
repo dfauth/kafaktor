@@ -1,6 +1,6 @@
 package com.github.dfauth.actor.kafka.guice.providers;
 
-import com.github.dfauth.kafka.StreamBuilder;
+import com.github.dfauth.kafka.Stream;
 import com.typesafe.config.Config;
 import org.apache.kafka.common.serialization.Serdes;
 
@@ -10,15 +10,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 
-public class StreamBuilderProvider implements Provider<StreamBuilder<String, byte[]>> {
+public class StreamBuilderProvider implements Provider<Stream.Builder<String, byte[]>> {
 
     private final Config config;
-    private StreamBuilder<String, byte[]> streamBuilder;
+    private Stream.Builder<String, byte[]> streamBuilder;
 
     @Inject
     public StreamBuilderProvider(Config config) {
         this.config = config;
-        streamBuilder = StreamBuilder.stringKeyBuilder();
+        streamBuilder = Stream.Builder.stringKeyBuilder();
         Map<String, Object> props = config.getConfig("kafka").entrySet().stream().reduce(new HashMap<>(),
                 (acc, e) -> {
                     acc.put(e.getKey(), e.getValue().unwrapped());
@@ -33,7 +33,7 @@ public class StreamBuilderProvider implements Provider<StreamBuilder<String, byt
     }
 
     @Override
-    public StreamBuilder get() {
+    public Stream.Builder get() {
         return streamBuilder;
     }
 }

@@ -7,9 +7,7 @@ import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
 import com.github.dfauth.actor.kafka.test.GreetingRequest;
 import com.github.dfauth.kafka.Stream;
-import com.github.dfauth.kafka.StreamBuilder;
 import com.google.inject.*;
-import com.google.inject.Module;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -17,8 +15,6 @@ import org.apache.avro.specific.SpecificRecordBase;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Map;
 
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
@@ -30,7 +26,7 @@ public class EnvelopeConsumerActorTestCase {
     private static final String TOPIC = "topic";
     private static final String GROUP_ID = "groupId";
 
-    private StreamBuilder<String, String> streamBuilder;
+    private Stream.Builder<String, String> streamBuilder;
     private Injector injector;
 
     @Test
@@ -52,8 +48,7 @@ public class EnvelopeConsumerActorTestCase {
 
             EnvelopeHandlerImpl envelopeHandler = injector().getInstance(Key.get(new TypeLiteral<EnvelopeHandlerImpl<? extends SpecificRecordBase>>(){}));
             ActorMessage env = envelopeHandler.envelope(actorRef, msg);
-//            new BootstrapActor(x, envelopeHandler.envelopeDeserializer()).start();
-            Stream<String, byte[]> stream = (Stream<String, byte[]>) injector().getInstance(StreamBuilder.class).build(); //createStream(p);
+            Stream<String, byte[]> stream = injector().getInstance(Key.get(new TypeLiteral<Stream.Builder<String,byte[]>>(){})).build();
             Thread.sleep(2 * 1000);
             stream.send(TOPIC, env.getKey(), envelopeHandler.envelopeSerializer().serialize(TOPIC, env));
             ActorMessage greeting = envelopeHandler.envelope("fred", GreetingRequest.newBuilder().setName("Fred").build());
