@@ -30,7 +30,7 @@ public class TestCase {
         CompletableFuture<String> f = new CompletableFuture<>();
         CompletableFuture<String> tryF = embeddedKafkaWithTopic(TOPIC).runTestFuture(p -> {
             p.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
-            Stream stream = Stream.Builder.stringBuilder()
+            Stream stream = Stream.Builder.builder()
                     .withProperties(p)
                     .withTopic(TOPIC)
                     .withMessageConsumer(m ->

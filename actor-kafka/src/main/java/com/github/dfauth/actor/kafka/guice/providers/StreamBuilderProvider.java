@@ -12,13 +12,11 @@ import java.util.Map;
 
 public class StreamBuilderProvider implements Provider<Stream.Builder<String, byte[]>> {
 
-    private final Config config;
     private Stream.Builder<String, byte[]> streamBuilder;
 
     @Inject
     public StreamBuilderProvider(Config config) {
-        this.config = config;
-        streamBuilder = Stream.Builder.stringKeyBuilder();
+        streamBuilder = Stream.Builder.stringKeyBuilder(Serdes.ByteArray());
         Map<String, Object> props = config.getConfig("kafka").entrySet().stream().reduce(new HashMap<>(),
                 (acc, e) -> {
                     acc.put(e.getKey(), e.getValue().unwrapped());
@@ -28,8 +26,7 @@ public class StreamBuilderProvider implements Provider<Stream.Builder<String, by
                     acc1.putAll(acc2);
                     return acc1;
                 });
-        streamBuilder.withProperties(props)
-        .withValueSerde(Serdes.ByteArray());
+        streamBuilder.withProperties(props);
     }
 
     @Override

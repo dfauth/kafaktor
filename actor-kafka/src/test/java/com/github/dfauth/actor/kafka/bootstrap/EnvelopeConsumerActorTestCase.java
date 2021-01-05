@@ -7,7 +7,9 @@ import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
 import com.github.dfauth.actor.kafka.test.GreetingRequest;
 import com.github.dfauth.kafka.Stream;
-import com.google.inject.*;
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValueFactory;
@@ -22,7 +24,7 @@ import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
 
-public class EnvelopeConsumerActorTestCase implements Consumer<byte[]> {
+public class EnvelopeConsumerActorTestCase implements Consumer<ActorMessage> {
 
     private static final Logger logger = LoggerFactory.getLogger(EnvelopeConsumerActorTestCase.class);
     private static final String TOPIC = "topic";
@@ -50,16 +52,16 @@ public class EnvelopeConsumerActorTestCase implements Consumer<byte[]> {
             injector.injectMembers(this);
 
             ActorMessage env = envelopeHandler.envelope(actorRef, msg);
-            Stream<String, byte[]> stream = streamBuilder.build(b -> b
+            Stream<String, ActorMessage> stream = streamBuilder.build(b -> b
                 .withGroupId(this.getClass().getCanonicalName())
                 .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
-//                    .withValueDeserializer(envelopeHandler.envelopeDeserializer())
+                .withValueSerde(envelopeHandler.envelopeSerde())
                 .withMessageConsumer(this)
             );
             Thread.sleep(2 * 1000);
-            stream.send(TOPIC, env.getKey(), envelopeHandler.envelopeSerializer().serialize(TOPIC, env));
+            stream.send(TOPIC, env.getKey(), env);
             ActorMessage greeting = envelopeHandler.envelope("fred", GreetingRequest.newBuilder().setName("Fred").build());
-            stream.send(TOPIC, greeting.getKey(), envelopeHandler.envelopeSerializer().serialize(TOPIC, greeting));
+            stream.send(TOPIC, greeting.getKey(), greeting);
             Thread.sleep(10 * 1000);
         }));
 
@@ -74,7 +76,7 @@ public class EnvelopeConsumerActorTestCase implements Consumer<byte[]> {
             "}";
 
     @Override
-    public void accept(byte[] bytes) {
+    public void accept(ActorMessage message) {
 
     }
 }

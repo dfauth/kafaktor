@@ -38,4 +38,13 @@ public class EnvelopeHandlerImpl<T extends SpecificRecordBase> implements Envelo
     public DeserializingFunction<ActorMessage> envelopeDeserializer() {
         return (DeserializingFunction<ActorMessage>) serde.deserializer();
     }
+
+    public Serde<T> serde() {
+        return serde;
+    }
+
+    public Serde<ActorMessage> envelopeSerde() {
+        return (Serde<ActorMessage>) serde;
+    }
+
 }

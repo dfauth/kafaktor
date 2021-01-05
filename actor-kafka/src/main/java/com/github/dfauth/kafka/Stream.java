@@ -3,10 +3,8 @@ package com.github.dfauth.kafka;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,85 +47,21 @@ public interface Stream<K,V> {
         private ConsumerAssignmentListener<K,V> topicPartitionConsumer = c -> tp -> {};
         private Predicate<ConsumerRecord<K, V>> predicate = r -> true;
 
-        public static <V> Builder<String,V> stringKeyBuilder() {
-            return new Builder<String, V>()
-                    .withKeySerde(Serdes.String());
+        public static <V> Builder<String,V> stringKeyBuilder(Serde<V> valueSerde) {
+            return builder(Serdes.String(), valueSerde);
         }
 
-        public static Builder<String,String> stringBuilder() {
-            return new Builder<String, String>()
-                    .withKeySerde(Serdes.String())
-                    .withValueSerde(Serdes.String());
+        public static Builder<String,String> builder() {
+            return builder(Serdes.String(), Serdes.String());
         }
 
-        public static <K,V> Builder<K,V> builder() {
-            return new Builder<>();
+        public static <K,V> Builder<K,V> builder(Serde<K> keySerde, Serde<V> valueSerde) {
+            return new Builder<>(keySerde, valueSerde);
         }
 
-        public Builder<K, V> withKeySerde(Serde<K> serde) {
-            keySerde = serde;
-            return this;
-        }
-
-        public Builder<K, V> withValueSerde(Serde<V> serde) {
-            valueSerde = serde;
-            return this;
-        }
-
-        public Builder<K, V> withKeyDeserializer(Deserializer<K> deserializer) {
-            return withKeySerde(new Serde<K>() {
-                @Override
-                public Serializer<K> serializer() {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public Deserializer<K> deserializer() {
-                    return deserializer;
-                }
-            });
-        }
-
-        public Builder<K, V> withValueDeserializer(Deserializer<V> deserializer) {
-            return withValueSerde(new Serde<V>() {
-                @Override
-                public Serializer<V> serializer() {
-                    throw new UnsupportedOperationException();
-                }
-
-                @Override
-                public Deserializer<V> deserializer() {
-                    return deserializer;
-                }
-            });
-        }
-
-        public Builder<K, V> withKeySerializer(Serializer<K> serializer) {
-            return withKeySerde(new Serde<K>() {
-                @Override
-                public Serializer<K> serializer() {
-                    return serializer;
-                }
-
-                @Override
-                public Deserializer<K> deserializer() {
-                    throw new UnsupportedOperationException();
-                }
-            });
-        }
-
-        public Builder<K, V> withValueSerializer(Serializer<V> serializer) {
-            return withValueSerde(new Serde<V>() {
-                @Override
-                public Serializer<V> serializer() {
-                    return serializer;
-                }
-
-                @Override
-                public Deserializer<V> deserializer() {
-                    throw new UnsupportedOperationException();
-                }
-            });
+        public Builder(Serde<K> keySerde, Serde<V> valueSerde) {
+            this.keySerde = keySerde;
+            this.valueSerde = valueSerde;
         }
 
         public Builder<K, V> withAssignmentConsumer(ConsumerAssignmentListener<K,V> c) {
@@ -215,19 +149,26 @@ public interface Stream<K,V> {
                     new SimpleKafkaConsumer<>(config, topics, keySerde, valueSerde, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
         }
 
-        public Stream<K, V> build(Consumer<Builder<K, V>> consumer) {
-            Builder<K,V> clone = new Builder<K,V>().withKeySerde(keySerde)
-                    .withValueSerde(valueSerde)
-                    .withAssignmentConsumer(topicPartitionConsumer)
-                    .withFilter(predicate)
+        public <T,R> Stream<T, R> build(Function<Builder<K, V>, Builder<T, R>> f) {
+            return f.apply(clone(keySerde, valueSerde)).build();
+        }
+
+        public <T> Builder<T, V> withKeySerde(Serde<T> keySerde) {
+            return clone(keySerde, valueSerde);
+        }
+
+        public <R> Builder<K, R> withValueSerde(Serde<R> valueSerde) {
+            return clone(keySerde, valueSerde);
+        }
+
+        private <T,R> Stream.Builder<T, R> clone(Serde<T> keySerde, Serde<R> valueSerde) {
+            return new Builder<>(keySerde, valueSerde)
                     .withOffsetCommitInterval(maxOffsetCommitInterval)
                     .withPollingDuration(pollingDuration)
                     .withProperties(config)
-                    .withRecordProcessor(recordProcessingFunction)
                     .withTopics(topics)
                     .withExecutor(executor);
-            consumer.accept(clone);
-            return clone.build();
         }
+
     }
 }

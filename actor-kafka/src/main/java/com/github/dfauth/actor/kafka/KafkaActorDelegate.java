@@ -67,7 +67,7 @@ public class KafkaActorDelegate<T extends SpecificRecordBase> implements ActorDe
             Stream<String, byte[]> stream = streamBuilder.build(c ->
                     c.withTopic(myConfig.getTopic())
                             .withRecordProcessor(c1)
-                            .withGroupId("name")
+                            .withGroupId("fred")
                     .withKeyFilter(k -> k.equals("fred"))
             );
             stream.start();
