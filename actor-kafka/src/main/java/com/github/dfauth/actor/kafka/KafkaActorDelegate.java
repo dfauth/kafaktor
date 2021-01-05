@@ -25,7 +25,7 @@ public class KafkaActorDelegate<T extends SpecificRecordBase> implements ActorDe
     private static final Logger logger = LoggerFactory.getLogger(KafkaActorDelegate.class);
 
     @Inject private Stream.Builder<String, byte[]> streamBuilder;
-    @Inject private EnvelopeHandlerImpl<? extends SpecificRecordBase> envelopeHandler;
+    @Inject private EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
     @Inject private Config config;
 
     public KafkaActorDelegate() {

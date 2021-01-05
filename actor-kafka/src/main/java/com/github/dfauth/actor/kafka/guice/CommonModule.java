@@ -25,7 +25,7 @@ public class CommonModule extends AbstractModule {
         bind(BootstrapActor.class).toProvider(new TypeLiteral<BootstrapActorProvider<? extends SpecificRecordBase>>(){}).asEagerSingleton();
         bind(MyConfig.class).toProvider(MyConfigProvider.class).asEagerSingleton();
         bind(new TypeLiteral<Stream.Builder<String, byte[]>>(){}).toProvider(StreamBuilderProvider.class).asEagerSingleton();
-        bind(new TypeLiteral<EnvelopeHandlerImpl<? extends SpecificRecordBase>>(){})
-                .toProvider(new TypeLiteral<EnvelopeHandlerProvider<? extends SpecificRecordBase>>(){}).asEagerSingleton();
+        bind(new TypeLiteral<EnvelopeHandlerImpl<SpecificRecordBase>>(){})
+                .toProvider(new TypeLiteral<EnvelopeHandlerProvider>(){}).asEagerSingleton();
     }
 }

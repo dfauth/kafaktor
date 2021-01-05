@@ -18,19 +18,19 @@ import java.util.function.Consumer;
 import static com.github.dfauth.utils.ConfigUtils.wrap;
 
 
-public class BootstrapActor<T extends SpecificRecordBase> implements Consumer<ConsumerRecord<String, byte[]>>, DespatchableHandler {
+public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>, DespatchableHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapActor.class);
 
     private static final String GROUP_ID = "groupId";
     private final Stream.Builder<String,byte[]> streamBuilder;
-    private final EnvelopeHandlerImpl<T> envelopeHandler;
+    private final EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
     private ConfigUtils config;
     private Stream stream;
     private String name;
 
     @Inject
-    public BootstrapActor(Config config, Stream.Builder<String,byte[]> streamBuilder, EnvelopeHandlerImpl<T> envelopeHandlerImpl) {
+    public BootstrapActor(Config config, Stream.Builder<String,byte[]> streamBuilder, EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandlerImpl) {
         this.config = wrap(config);
         this.streamBuilder = streamBuilder;
         this.envelopeHandler = envelopeHandlerImpl;

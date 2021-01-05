@@ -13,22 +13,22 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 
 
-public class EnvelopeHandlerProvider<T extends SpecificRecordBase> implements Provider<EnvelopeHandlerImpl<T>> {
+public class EnvelopeHandlerProvider implements Provider<EnvelopeHandlerImpl<SpecificRecordBase>> {
 
-    private final EnvelopeHandlerImpl<T> envelopeHandler;
+    private final EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
 
     @Inject
     public EnvelopeHandlerProvider(Config config, SchemaRegistryClient schemaRegistryClient) {
         ConfigUtils _config = ConfigUtils.wrap(config);
         boolean isAutoRegisterSchema = _config.getBoolean("kafka.schema.registry.autoRegisterSchema").orElse(false);
-        this.envelopeHandler = new EnvelopeHandlerImpl<>(Serdes.serdeFrom(
-                AvroSerializer.<T>builder().withAutoRegisterSchema(isAutoRegisterSchema).withSchemaRegistryClient(schemaRegistryClient).build(),
-                AvroDeserializer.<T>builder().withAutoRegisterSchema(isAutoRegisterSchema).withSchemaRegistryClient(schemaRegistryClient).build()
+        this.envelopeHandler = new EnvelopeHandlerImpl(Serdes.serdeFrom(
+                AvroSerializer.builder().withAutoRegisterSchema(isAutoRegisterSchema).withSchemaRegistryClient(schemaRegistryClient).build(),
+                AvroDeserializer.builder().withAutoRegisterSchema(isAutoRegisterSchema).withSchemaRegistryClient(schemaRegistryClient).build()
         ));
     }
 
     @Override
-    public EnvelopeHandlerImpl<T> get() {
+    public EnvelopeHandlerImpl<SpecificRecordBase> get() {
         return envelopeHandler;
     }
 }
