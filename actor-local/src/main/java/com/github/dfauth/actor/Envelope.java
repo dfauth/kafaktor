@@ -2,6 +2,8 @@ package com.github.dfauth.actor;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import static java.util.Objects.nonNull;
 
@@ -33,12 +35,13 @@ public class Envelope<T> {
         return payload;
     }
 
-    public Optional<Addressable<T>> sender() {
-        return Optional.ofNullable((Addressable<T>) metadata.get(ADDRESSABLE));
+    public <R> Optional<Addressable<R>> sender() {
+        return Optional.ofNullable((Addressable<R>) metadata.get(ADDRESSABLE));
     }
 
-    public CompletableFuture<?> replyWith(T s) {
-        return sender().map(a -> a.tell(s)).orElse(CompletableFuture.failedFuture(new IllegalStateException("sender is not addressable")));
+    public <R> CompletableFuture<R> replyWith(Function<T,R> f) {
+        Optional<Addressable<R>> sender = sender();
+        return sender.map(a -> a.tell(f.apply(payload))).orElse(CompletableFuture.failedFuture(new IllegalStateException("sender is not addressable")));
     }
 
     static class Builder<T> {
@@ -50,7 +53,7 @@ public class Envelope<T> {
             this.payload = payload;
         }
 
-        Builder<T> withAddressable(Addressable<T> addressable) {
+        <R> Builder<T> withAddressable(Addressable<R> addressable) {
             nonNull(addressable);
             this.metadata.put(ADDRESSABLE, addressable);
             return this;

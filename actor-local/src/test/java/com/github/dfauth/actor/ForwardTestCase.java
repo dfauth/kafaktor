@@ -21,9 +21,9 @@ public class ForwardTestCase {
 
         ArrayBlockingQueue<String> q = new ArrayBlockingQueue<>(10);
 
-        ActorRef<String> ref0 = Actor.fromBehaviorFactory(ctx1 -> (EnvelopeConsumer<String>) _e -> {
-            _e.replyWith(ctx1.id()+" replies with "+_e.payload());
-        });
+        ActorRef<String> ref0 = Actor.fromBehaviorFactory(ctx1 -> (EnvelopeConsumer<String>) _e ->
+            _e.replyWith(p -> ctx1.id()+" replies with "+p)
+        );
         ActorRef<String> ref = Actor.fromBehaviorFactory(initial(ref0));
         ref.tell(Envelope.of(REF_MSG, e -> {
             q.offer(e.payload());
@@ -47,7 +47,7 @@ public class ForwardTestCase {
 
         public void receive(ActorContext<String> ctx, Envelope<String> e) {
                     ref.ask(e.payload())
-                    .thenAccept(reply -> e.replyWith(ctx.id()+" replies with "+reply));
+                    .thenAccept(reply -> e.replyWith(ignored -> ctx.id()+" replies with "+reply));
         }
 
         @Override

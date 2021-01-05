@@ -5,14 +5,14 @@ import java.util.function.Function;
 
 public interface Addressable<T> extends Function<T, CompletableFuture<?>> {
 
-    CompletableFuture<?> tell(Envelope<T> e);
+    CompletableFuture<T> tell(Envelope<T> e);
 
-    default CompletableFuture<?> tell(T msg) {
+    default CompletableFuture<T> tell(T msg) {
         return tell(Envelope.of(msg));
     }
 
     @Override
-    default CompletableFuture<?> apply(T t) {
+    default CompletableFuture<T> apply(T t) {
         return tell(t);
     }
 }

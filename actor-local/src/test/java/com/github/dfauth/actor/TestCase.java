@@ -54,9 +54,9 @@ public class TestCase {
 
         BlockingQueue<String> q = new ArrayBlockingQueue<>(10);
 
-        ActorRef<String> ref = Actor.fromEnvelopeConsumer(e -> {
-            e.replyWith("response to "+e.payload());
-        });
+        ActorRef<String> ref = Actor.fromEnvelopeConsumer(e ->
+            e.replyWith(ignored -> "response to "+e.payload())
+        );
         ref.tell(Envelope.of(REF_MSG, e -> {
             q.offer(e.payload());
             return CompletableFuture.completedFuture(null);
@@ -133,7 +133,7 @@ public class TestCase {
             try {
                 return ifChange(e.payload(), () -> new IntermediateState());
             } finally {
-                e.replyWith(this.getClass().getSimpleName());
+                e.replyWith(ignored -> this.getClass().getSimpleName());
             }
         }
     }
@@ -145,7 +145,7 @@ public class TestCase {
             try {
                 return ifChange(e.payload(), () -> new FinalState());
             } finally {
-                e.replyWith(this.getClass().getSimpleName());
+                e.replyWith(ignored -> this.getClass().getSimpleName());
             }
         }
     }
@@ -154,7 +154,7 @@ public class TestCase {
 
         @Override
         public void receive(Envelope<String> e) {
-            e.replyWith(this.getClass().getSimpleName());
+            e.replyWith(ignored -> this.getClass().getSimpleName());
         }
     }
 }

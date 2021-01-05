@@ -106,9 +106,9 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
         }
 
         @Override
-        public CompletableFuture<T> ask(T t) {
-            CompletableFuture<T> f = new CompletableFuture<>();
-            tell(Envelope.builder(t).withAddressable(Actor.fromBehavior(penultimate(e -> f.complete(e.payload())))).withCorrelationId().build());
+        public <R> CompletableFuture<R> ask(T t) {
+            CompletableFuture<R> f = new CompletableFuture<>();
+            tell(Envelope.builder(t).withAddressable(Actor.fromBehavior(Behaviors.Penultimate.<R>penultimate(e -> f.complete(e.payload())))).withCorrelationId().build());
             return f;
         }
 
@@ -118,7 +118,7 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
         }
 
         @Override
-        public CompletableFuture<?> tell(Envelope<T> e) {
+        public CompletableFuture<T> tell(Envelope<T> e) {
             return addressable.tell(e);
         }
     }
