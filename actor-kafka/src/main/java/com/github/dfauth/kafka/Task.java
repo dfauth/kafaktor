@@ -24,11 +24,11 @@ public class Task<K,V> implements Runnable {
     private final CompletableFuture<Long> completion = new CompletableFuture<>();
     private final ReentrantLock startStopLock = new ReentrantLock();
     private final AtomicLong currentOffset = new AtomicLong();
-    private final Function<ConsumerRecord<K,V>, Long> recordProcessingPredicate;
+    private final Function<ConsumerRecord<K,V>, Long> recordProcessor;
 
-    public Task(java.util.stream.Stream<ConsumerRecord<K,V>> records, Function<ConsumerRecord<K,V>, Long> recordProcessingPredicate) {
+    public Task(java.util.stream.Stream<ConsumerRecord<K,V>> records, Function<ConsumerRecord<K,V>, Long> recordProcessor) {
         this.records = records;
-        this.recordProcessingPredicate = record -> tryCatch(() -> recordProcessingPredicate.apply(record), e -> record.offset()+1);
+        this.recordProcessor = record -> tryCatch(() -> recordProcessor.apply(record), e -> record.offset()+1);
     }
 
     public void run() {
@@ -40,7 +40,7 @@ public class Task<K,V> implements Runnable {
         startStopLock.unlock();
         
         records.filter(r -> !stopped)
-               .map(recordProcessingPredicate)
+               .map(recordProcessor)
                .forEach(offset -> currentOffset.set(offset));
 
         finished = true;

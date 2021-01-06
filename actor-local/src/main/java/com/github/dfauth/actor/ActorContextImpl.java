@@ -6,7 +6,6 @@ import com.github.dfauth.trycatch.TryCatch;
 import java.util.Optional;
 import java.util.concurrent.*;
 
-import static com.github.dfauth.actor.Behaviors.Penultimate.penultimate;
 import static com.github.dfauth.actor.Validations.anonymousId;
 import static com.github.dfauth.actor.Validations.validateId;
 
@@ -108,7 +107,7 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
         @Override
         public <R> CompletableFuture<R> ask(T t) {
             CompletableFuture<R> f = new CompletableFuture<>();
-            tell(Envelope.builder(t).withAddressable(Actor.fromBehavior(Behaviors.Penultimate.<R>penultimate(e -> f.complete(e.payload())))).withCorrelationId().build());
+            tell(Envelope.builder(t).withAddressable(Actor.fromBehavior(Behaviors.<R>penultimate(e -> f.complete(e.payload())))).withCorrelationId().build());
             return f;
         }
 
