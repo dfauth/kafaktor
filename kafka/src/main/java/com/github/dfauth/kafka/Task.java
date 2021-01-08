@@ -1,5 +1,6 @@
 package com.github.dfauth.kafka;
 
+import com.github.dfauth.trycatch.TryCatch;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ public class Task<K,V> implements Runnable {
 
     public Task(java.util.stream.Stream<ConsumerRecord<K,V>> records, Function<ConsumerRecord<K,V>, Long> recordProcessor) {
         this.records = records;
-        this.recordProcessor = record -> tryCatch(() -> recordProcessor.apply(record), e -> record.offset()+1);
+        this.recordProcessor = record -> TryCatch.tryCatch(() -> recordProcessor.apply(record), e -> record.offset()+1);
     }
 
     public void run() {

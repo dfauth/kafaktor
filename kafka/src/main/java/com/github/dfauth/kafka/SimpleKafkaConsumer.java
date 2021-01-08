@@ -1,6 +1,7 @@
 package com.github.dfauth.kafka;
 
 import com.github.dfauth.Lazy;
+import com.github.dfauth.trycatch.TryCatch;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -55,7 +56,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
     }
 
     public void start() {
-        tryCatch(() -> consumer.subscribe(topics, this));
+        TryCatch.tryCatch(() -> consumer.subscribe(topics, this));
         new Thread(null, this, this.getClass().getSimpleName()+"-pollingThread-"+topics).start();
     }
 

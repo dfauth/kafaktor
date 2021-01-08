@@ -11,29 +11,17 @@
     </parent>
 
     <groupId>com.github.dfauth.kafaktor</groupId>
-    <artifactId>actor-kafka</artifactId>
+    <artifactId>kafka</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <guice.version>4.2.3</guice.version>
+        <jar-plugin.version>3.2.0</jar-plugin.version>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>com.github.dfauth.kafaktor</groupId>
-            <artifactId>actor-local</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.dfauth.kafaktor</groupId>
-            <artifactId>kafka</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.dfauth.kafaktor</groupId>
-            <artifactId>kafka</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
+            <groupId>com.github.dfauth</groupId>
+            <artifactId>trycatch</artifactId>
         </dependency>
         <dependency>
             <groupId>junit</groupId>
@@ -46,10 +34,6 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.github.dfauth</groupId>
-            <artifactId>trycatch</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -66,10 +50,7 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka-test</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.typesafe</groupId>
-            <artifactId>config</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.confluent</groupId>
@@ -78,11 +59,6 @@
         <dependency>
             <groupId>io.confluent</groupId>
             <artifactId>kafka-schema-registry-client</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-            <version>${guice.version}</version>
         </dependency>
     </dependencies>
 
@@ -110,7 +86,7 @@
                     <javaSourceDirectories>
                         <sourceDirectory>${project.basedir}/target/generated-sources/java/</sourceDirectory>
                     </javaSourceDirectories>
-<!--                    <avroOutputDirectory>${project.basedir}/target/avsc</avroOutputDirectory>-->
+                    <!--                    <avroOutputDirectory>${project.basedir}/target/avsc</avroOutputDirectory>-->
                     <templateDirectory>actor-kafka/src/main/velocity/</templateDirectory>
                 </configuration>
                 <executions>
@@ -126,6 +102,18 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-assembly-plugin</artifactId>
                 <version>${assembly-plugin.version}</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${jar-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

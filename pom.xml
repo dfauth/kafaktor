@@ -14,6 +14,7 @@
   <modules>
     <module>actor-kafka</module>
     <module>actor-local</module>
+    <module>kafka</module>
   </modules>
 
   <properties>
@@ -24,6 +25,13 @@
     <slf4j-api.version>1.7.30</slf4j-api.version>
     <tryCatch.version>1.0-SNAPSHOT</tryCatch.version>
     <logback.version>1.2.3</logback.version>
+    <kafka.version>2.6.0</kafka.version>
+    <avro.version>1.10.1</avro.version>
+    <compiler-plugin.version>3.8.1</compiler-plugin.version>
+    <assembly-plugin.version>3.1.0</assembly-plugin.version>
+    <spring.version>2.6.4</spring.version>
+    <confluent.version>6.0.1</confluent.version>
+    <config.version>1.4.1</config.version>
   </properties>
 
   <dependencyManagement>
@@ -48,6 +56,42 @@
         <groupId>com.github.dfauth</groupId>
         <artifactId>trycatch</artifactId>
         <version>${tryCatch.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.kafka</groupId>
+        <artifactId>kafka-clients</artifactId>
+        <version>${kafka.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro</artifactId>
+        <version>${avro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.avro</groupId>
+        <artifactId>avro-ipc</artifactId>
+        <version>${avro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.kafka</groupId>
+        <artifactId>spring-kafka-test</artifactId>
+        <version>${spring.version}</version>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.typesafe</groupId>
+        <artifactId>config</artifactId>
+        <version>${config.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-avro-serializer</artifactId>
+        <version>${confluent.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.confluent</groupId>
+        <artifactId>kafka-schema-registry-client</artifactId>
+        <version>${confluent.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

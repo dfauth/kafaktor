@@ -1,5 +1,6 @@
 package com.github.dfauth.kafka;
 
+import com.github.dfauth.trycatch.Try;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
@@ -45,7 +46,7 @@ public class TestCase {
 
             CompletableFuture<RecordMetadata> _f = stream.send(TOPIC, MESSAGE);
             _f.thenAccept(r -> logger.info("metadata: {}", r));
-            tryWith(() -> _f.get(3, TimeUnit.SECONDS)).recover(_t -> f.completeExceptionally(_t));
+            Try.tryWith(() -> _f.get(3, TimeUnit.SECONDS)).recover(_t -> f.completeExceptionally(_t));
             return f;
         });
 

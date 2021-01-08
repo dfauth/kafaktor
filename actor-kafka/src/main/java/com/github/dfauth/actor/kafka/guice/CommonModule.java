@@ -9,7 +9,6 @@ import com.github.dfauth.actor.kafka.guice.providers.StreamBuilderProvider;
 import com.github.dfauth.kafka.Stream;
 import com.github.dfauth.utils.MyConfig;
 import com.google.inject.AbstractModule;
-import com.google.inject.Key;
 import com.google.inject.TypeLiteral;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.slf4j.Logger;

@@ -1,5 +1,6 @@
 package com.github.dfauth.kafka;
 
+import com.github.dfauth.trycatch.TryCatch;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -78,7 +79,7 @@ public interface Stream<K,V> {
         }
 
         public Builder<K, V> withRecordConsumer(Consumer<ConsumerRecord<K,V>> recordConsumer) {
-            return withRecordProcessor(r -> tryCatch(() -> {
+            return withRecordProcessor(r -> TryCatch.tryCatch(() -> {
                 recordConsumer.accept(r);
                 return r.offset() + 1;
             }, e -> r.offset()+1));
