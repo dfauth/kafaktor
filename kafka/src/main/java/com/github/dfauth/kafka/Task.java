@@ -12,8 +12,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static com.github.dfauth.trycatch.TryCatch.tryCatch;
-
 public class Task<K,V> implements Runnable {
 
     private static final Logger logger = LoggerFactory.getLogger(Task.class);

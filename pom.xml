@@ -15,6 +15,7 @@
     <module>actor-kafka</module>
     <module>actor-local</module>
     <module>kafka</module>
+    <module>akka-typed</module>
   </modules>
 
   <properties>

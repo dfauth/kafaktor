@@ -1,6 +1,5 @@
 package com.github.dfauth.kafka;
 
-import com.github.dfauth.trycatch.TryCatch;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
@@ -45,7 +44,7 @@ public interface Stream<K,V> {
         private Map<String, Object> config;
         private Serde<K> keySerde;
         private Serde<V> valueSerde;
-        private ConsumerAssignmentListener<K,V> topicPartitionConsumer = c -> tp -> {};
+        private PartitionAssignmentEventConsumer<K,V> topicPartitionConsumer = c -> tp -> {};
         private Predicate<ConsumerRecord<K, V>> predicate = r -> true;
 
         public static <V> Builder<String,V> stringKeyBuilder(Serde<V> valueSerde) {
@@ -65,7 +64,7 @@ public interface Stream<K,V> {
             this.valueSerde = valueSerde;
         }
 
-        public Builder<K, V> withAssignmentConsumer(ConsumerAssignmentListener<K,V> c) {
+        public Builder<K, V> withPartitionAssignmentEventConsumer(PartitionAssignmentEventConsumer<K,V> c) {
             topicPartitionConsumer = c;
             return this;
         }
@@ -79,7 +78,7 @@ public interface Stream<K,V> {
         }
 
         public Builder<K, V> withRecordConsumer(Consumer<ConsumerRecord<K,V>> recordConsumer) {
-            return withRecordProcessor(r -> TryCatch.tryCatch(() -> {
+            return withRecordProcessor(r -> tryCatch(() -> {
                 recordConsumer.accept(r);
                 return r.offset() + 1;
             }, e -> r.offset()+1));

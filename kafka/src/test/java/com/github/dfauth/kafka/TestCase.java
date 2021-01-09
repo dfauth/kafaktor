@@ -15,7 +15,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
-import static com.github.dfauth.trycatch.Try.tryWith;
 import static org.junit.Assert.assertEquals;
 
 public class TestCase {
@@ -36,11 +35,11 @@ public class TestCase {
                     .withTopic(TOPIC)
                     .withMessageConsumer(m ->
                             f.complete(m))
-                    .withAssignmentConsumer(c -> _p -> {
+                    .withPartitionAssignmentEventConsumer(c -> e -> e.onAssigment(_p -> {
                         Map<TopicPartition, Long> bo = c.beginningOffsets(_p);
                         Map<TopicPartition, Long> eo = c.endOffsets(_p);
                         _p.forEach(__p -> logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p)));
-                    })
+                    }))
                     .build();
             stream.start();
 

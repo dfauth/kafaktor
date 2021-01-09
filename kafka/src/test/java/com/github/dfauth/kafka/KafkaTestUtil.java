@@ -1,6 +1,5 @@
 package com.github.dfauth.kafka;
 
-import com.github.dfauth.trycatch.TryCatch;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 
@@ -11,7 +10,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static com.github.dfauth.trycatch.TryCatch.tryCatchIgnore;
 
 public class KafkaTestUtil {
@@ -67,7 +65,7 @@ public class KafkaTestUtil {
             try {
                 return f.apply(p);
             } finally {
-                TryCatch.tryCatch(() ->broker.destroy());
+                tryCatchIgnore(() ->broker.destroy());
             }
         }
 
@@ -78,7 +76,7 @@ public class KafkaTestUtil {
             p.putAll(Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             CompletableFuture<T> _f = f.apply(p);
             return _f.handle((r,e) -> {
-                TryCatch.tryCatchIgnore(() -> broker.destroy());
+                tryCatchIgnore(() -> broker.destroy());
                 return r;
             });
         }

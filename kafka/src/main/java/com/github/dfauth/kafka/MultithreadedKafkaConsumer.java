@@ -37,9 +37,9 @@ class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceList
     private final Function<ConsumerRecord<K,V>, Long> recordProcessingFunction;
     private Duration pollingDuration;
     private Duration maxOffsetCommitInterval;
-    private ConsumerAssignmentListener<K,V> topicPartitionConsumer;
+    private PartitionAssignmentEventConsumer<K,V> topicPartitionConsumer;
 
-    MultithreadedKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, ExecutorService executor, Predicate<ConsumerRecord<K,V>> predicate, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, ConsumerAssignmentListener<K,V> topicPartitionConsumer) {
+    MultithreadedKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, ExecutorService executor, Predicate<ConsumerRecord<K,V>> predicate, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, PartitionAssignmentEventConsumer<K,V> topicPartitionConsumer) {
         this.topics = topics;
         this.executor = executor;
         this.predicate = predicate;
@@ -166,7 +166,7 @@ class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceList
     public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
         topicPartitionConsumer
                 .withKafkaConsumer(consumer)
-                .onAssignment(partitions);
+                .onAssignment(new AssignmentListener.PartitionsAssignedEvent(partitions));
         consumer.resume(partitions);
     }
 

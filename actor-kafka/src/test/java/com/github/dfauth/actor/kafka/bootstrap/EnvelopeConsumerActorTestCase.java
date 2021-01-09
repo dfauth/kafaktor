@@ -11,8 +11,6 @@ import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -22,6 +20,8 @@ import java.util.function.Consumer;
 
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
+import static com.github.dfauth.utils.ConfigBuilder.builder;
+import static com.github.dfauth.utils.ConfigBuilder.builderFrom;
 
 
 public class EnvelopeConsumerActorTestCase implements Consumer<ActorMessage> {
@@ -41,12 +41,17 @@ public class EnvelopeConsumerActorTestCase implements Consumer<ActorMessage> {
 
         EnvelopeConsumerEvent msg = EnvelopeConsumerEvent.newBuilder().setImplementationClassName(EnvelopeConsumerTestActor.class.getCanonicalName()).setName("fred").build();
 
-        Config config = ConfigFactory.parseString(String.format(CONFIG, TOPIC));
+        Config config = builder()
+                .node("kafka")
+                .value("topic", TOPIC)
+                .node("schema")
+                .node("registry")
+                .value("url", "http://localhost:8080")
+                .value("autoRegisterSchema", true).build();
+
         embeddedKafkaWithTopic(TOPIC).runTestConsumer(p -> tryCatch(() -> {
-            Config x = p.entrySet().stream().reduce(config,
-                    (c, e) -> c.withValue("kafka." + e.getKey(), ConfigValueFactory.fromAnyRef(e.getValue())),
-                    (c1, c2) -> c1.withFallback(c2)
-            );
+            Config x = builderFrom(config).node("kafka").values(p).build();
+
             MyModules.register(binder -> binder.bind(Config.class).toInstance(x));
             Injector injector = Guice.createInjector(MyModules.get());
             injector.injectMembers(this);
@@ -66,14 +71,6 @@ public class EnvelopeConsumerActorTestCase implements Consumer<ActorMessage> {
         }));
 
     }
-
-    private static final String CONFIG = "{\n" +
-            "  kafka {\n" +
-            "    topic: %s\n" +
-            "    schema.registry.url: \"http://localhost:8080\"\n" +
-            "    schema.registry.autoRegisterSchema: true\n" +
-            "  }\n" +
-            "}";
 
     @Override
     public void accept(ActorMessage message) {
