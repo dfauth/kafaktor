@@ -1,6 +1,12 @@
 package com.github.dfauth.actor;
 
+import java.util.function.Function;
+
 public class Behaviors {
+
+    public static <T> Behavior<T> setup(Function<ActorContext<T>, Behavior<T>> f) {
+        return new DeferredBehavior(f);
+    }
 
     public static final <T> Final<T> stopped() {
         return e -> {
@@ -32,4 +38,17 @@ public class Behaviors {
         }
     }
 
+    private static class DeferredBehavior<T> implements Behavior<T> {
+
+        private final Function<ActorContext<T>, Behavior<T>> f;
+
+        public DeferredBehavior(Function<ActorContext<T>, Behavior<T>> f) {
+            this.f = f;
+        }
+
+        @Override
+        public Behavior<T> onMessage(Envelope<T> e) {
+            throw new UnsupportedOperationException();
+        }
+    }
 }
