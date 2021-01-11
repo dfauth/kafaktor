@@ -31,6 +31,11 @@
         </dependency>
         <dependency>
             <groupId>com.github.dfauth.kafaktor</groupId>
+            <artifactId>bootstrap</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.dfauth.kafaktor</groupId>
             <artifactId>kafka</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>

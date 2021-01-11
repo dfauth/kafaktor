@@ -1,6 +1,4 @@
-package dfauth.kafaktor.bootstrap;
-
-import com.github.dfauth.kafka.OffsetManager;
+package com.github.dfauth.kafka;
 
 public class RecoveryStrategies<K,V> {
 

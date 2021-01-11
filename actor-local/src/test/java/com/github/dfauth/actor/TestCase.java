@@ -57,10 +57,10 @@ public class TestCase {
         ActorRef<String> ref = Actor.fromEnvelopeConsumer(e ->
             e.replyWith(ignored -> "response to "+e.payload())
         );
-        ref.tell(Envelope.of(REF_MSG, e -> {
-            q.offer(e.payload());
+        ref.tell(REF_MSG, (m,a) -> {
+            q.offer(m);
             return CompletableFuture.completedFuture(null);
-        }));
+        });
         {
             String msg = q.poll(1, TimeUnit.SECONDS);
             assertEquals("response to "+REF_MSG, msg);
@@ -72,38 +72,38 @@ public class TestCase {
 
         BlockingQueue<String> q = new ArrayBlockingQueue<>(10);
 
-        Addressable<String> replyTo = e -> {
-            q.offer(e.payload());
+        Addressable<String> replyTo = (m,a) -> {
+            q.offer(m);
             return CompletableFuture.completedFuture(null);
         };
 
         ActorRef<String> ref = Actor.fromBehavior(State.initial());
-        ref.tell(Envelope.of(REF_MSG, replyTo));
+        ref.tell(REF_MSG, replyTo);
         {
             String msg = q.poll(1, TimeUnit.SECONDS);
             assertEquals(InitialState.class.getSimpleName(), msg);
         }
-        ref.tell(Envelope.of(REF_MSG, replyTo));
+        ref.tell(REF_MSG, replyTo);
         {
             String msg = q.poll(1, TimeUnit.SECONDS);
             assertEquals(InitialState.class.getSimpleName(), msg);
         }
-        ref.tell(Envelope.of(State.CHANGE_MESSAGE, replyTo));
+        ref.tell(State.CHANGE_MESSAGE, replyTo);
         {
             String msg = q.poll(1, TimeUnit.SECONDS);
             assertEquals(InitialState.class.getSimpleName(), msg);
         }
-        ref.tell(Envelope.of(REF_MSG, replyTo));
+        ref.tell(REF_MSG, replyTo);
         {
             String msg = q.poll(1, TimeUnit.SECONDS);
             assertEquals(IntermediateState.class.getSimpleName(), msg);
         }
-        ref.tell(Envelope.of(State.CHANGE_MESSAGE, replyTo));
+        ref.tell(State.CHANGE_MESSAGE, replyTo);
         {
             String msg = q.poll(1, TimeUnit.SECONDS);
             assertEquals(IntermediateState.class.getSimpleName(), msg);
         }
-        ref.tell(Envelope.of(REF_MSG, replyTo));
+        ref.tell(REF_MSG, replyTo);
         {
             String msg = q.poll(1, TimeUnit.SECONDS);
             assertEquals(FinalState.class.getSimpleName(), msg);

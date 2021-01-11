@@ -2,6 +2,8 @@ package com.github.dfauth.actor;
 
 import com.github.dfauth.partial.VoidFunction;
 import com.github.dfauth.trycatch.TryCatch;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -9,7 +11,9 @@ import java.util.concurrent.*;
 import static com.github.dfauth.actor.Validations.anonymousId;
 import static com.github.dfauth.actor.Validations.validateId;
 
-public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext<T> {
+public class  ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext<T> {
+
+    private static final Logger logger = LoggerFactory.getLogger(ActorContextImpl.class);
 
     private static ExecutorService staticExecutor;
     private Behavior<T> behaviour;
@@ -57,8 +61,8 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
 
     @Override
     public ActorRef<T> ref() {
-        return new ActorRefImpl<T>(this, id, e -> {
-            q.offer(e);
+        return new ActorRefImpl<T>(this, id, (m, a) -> {
+            q.offer(m);
             return CompletableFuture.completedFuture(null);
         });
     }
@@ -86,19 +90,29 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
 
     @Override
     public ActorRef<T> self() {
-        return new ActorRefImpl<>(this, id, e -> {
-            q.offer(e);
+        return new ActorRefImpl<>(this, id, (m, a) -> {
+            q.offer(m);
             return CompletableFuture.completedFuture(null);
         });
     }
 
+    @Override
+    public <R> ActorRef<R> spawn(Behavior<R> behavior, String name) {
+        return null;
+    }
+
+    @Override
+    public Logger getLogger() {
+        return logger;
+    }
+
     static class ActorRefImpl<T> implements ActorRef<T> {
 
-        private final Addressable<T> addressable;
+        private final Addressable<Envelope<T>> addressable;
         private final ActorContext<T> ctx;
         private final String id;
 
-        public ActorRefImpl(ActorContext<T> ctx, String id,  Addressable<T> addressable) {
+        public ActorRefImpl(ActorContext<T> ctx, String id,  Addressable<Envelope<T>> addressable) {
             this.ctx = ctx;
             this.id = id;
             this.addressable = addressable;
@@ -107,7 +121,7 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
         @Override
         public <R> CompletableFuture<R> ask(T t) {
             CompletableFuture<R> f = new CompletableFuture<>();
-            tell(Envelope.builder(t).withAddressable(Actor.fromBehavior(Behaviors.<R>penultimate(e -> f.complete(e.payload())))).withCorrelationId().build());
+            addressable.tell(EnvelopeImpl.builder(t).withAddressable(Actor.fromBehavior(Behaviors.<R>penultimate(e -> f.complete(e.payload())))).withCorrelationId().build());
             return f;
         }
 
@@ -117,8 +131,11 @@ public class ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext
         }
 
         @Override
-        public CompletableFuture<T> tell(Envelope<T> e) {
-            return addressable.tell(e);
+        public CompletableFuture<T> tell(T t, Optional<Addressable<T>> optAddressable) {
+            EnvelopeImpl.Builder<T> b = EnvelopeImpl.builder(t).withCorrelationId();
+            optAddressable.ifPresent(a -> b.withAddressable(a));
+            addressable.tell(b.build());
+            return CompletableFuture.completedFuture(t);
         }
     }
 }

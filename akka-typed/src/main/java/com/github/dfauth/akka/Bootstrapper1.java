@@ -1,7 +1,8 @@
-package dfauth.kafaktor.bootstrap;
+package com.github.dfauth.akka;
 
-import com.github.dfauth.actor.Behavior;
+import akka.actor.typed.Behavior;
 import com.github.dfauth.actor.Envelope;
+import com.github.dfauth.kafka.RecoveryStrategy;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,24 +11,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class Bootstrapper<T> {
+public class Bootstrapper1<T> {
 
-    private static final Logger logger = LoggerFactory.getLogger(Bootstrapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(com.github.dfauth.bootstrap.Bootstrapper.class);
 
     private final String name;
     private final RecoveryStrategy<String, Envelope<T>> recoveryStrategy;
-    private static final Map<String, Bootstrapper> instances = new HashMap<>();
+    private static final Map<String, Bootstrapper1> instances = new HashMap<>();
     private Behavior<T> behaviour;
 
     public static final String name(TopicPartition topicPartition) {
         return String.format("%s-%d", topicPartition.topic(), topicPartition.partition());
     }
 
-    public static final Optional<Bootstrapper> lookup(TopicPartition topicPartition) {
+    public static final Optional<Bootstrapper1> lookup(TopicPartition topicPartition) {
         return Optional.ofNullable(instances.get(name(topicPartition)));
     }
 
-    public Bootstrapper(TopicPartition topicPartition, Behavior<T> behaviour, RecoveryStrategy<String, Envelope<T>> recoveryStrategy) {
+    public Bootstrapper1(TopicPartition topicPartition, Behavior<T> behaviour, RecoveryStrategy<String, Envelope<T>> recoveryStrategy) {
         this.name = name(topicPartition);
         this.behaviour = behaviour;
         this.recoveryStrategy = recoveryStrategy;

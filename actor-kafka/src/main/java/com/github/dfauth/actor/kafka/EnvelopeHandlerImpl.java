@@ -7,7 +7,7 @@ import org.apache.kafka.common.serialization.Serializer;
 
 import java.util.Map;
 
-public class EnvelopeHandlerImpl<T extends SpecificRecordBase> implements EnveloperHandler {
+public class EnvelopeHandlerImpl<T extends SpecificRecordBase> implements EnvelopeHandler {
 
     private Serde<T> serde;
 
@@ -16,19 +16,19 @@ public class EnvelopeHandlerImpl<T extends SpecificRecordBase> implements Envelo
     }
 
     public ActorMessage envelope(String key, T payload) {
-        return EnveloperHandler.<T>envelope(key, payload, serde.serializer());
+        return EnvelopeHandler.<T>envelope(key, payload, serde.serializer());
     }
 
     public ActorMessage envelope(String key, Map<String,String> metadata, T payload) {
-        return EnveloperHandler.<T>envelope(key, metadata, payload, serde.serializer());
+        return EnvelopeHandler.<T>envelope(key, metadata, payload, serde.serializer());
     }
 
     public Tuple2<Map<String, String>, T> extract(ActorMessage actorMessage) {
-        return EnveloperHandler.extract(actorMessage, serde.deserializer());
+        return EnvelopeHandler.extract(actorMessage, serde.deserializer());
     }
 
     public T payload(ActorMessage actorMessage) {
-        return EnveloperHandler.<T>payload(actorMessage, serde.deserializer());
+        return EnvelopeHandler.<T>payload(actorMessage, serde.deserializer());
     }
 
     public Serializer<ActorMessage> envelopeSerializer() {

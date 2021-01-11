@@ -4,6 +4,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -25,10 +26,10 @@ public class ForwardTestCase {
             _e.replyWith(p -> ctx1.id()+" replies with "+p)
         );
         ActorRef<String> ref = Actor.fromBehaviorFactory(initial(ref0));
-        ref.tell(Envelope.of(REF_MSG, e -> {
-            q.offer(e.payload());
+        ref.tell(REF_MSG, (m, a) -> {
+            q.offer(m);
             return CompletableFuture.completedFuture(null);
-        }));
+        });
         String result = q.poll(1, TimeUnit.SECONDS);
         assertEquals(ref.id()+" replies with "+ref0.id()+" replies with "+REF_MSG, result);
     }

@@ -1,5 +1,6 @@
 package com.github.dfauth.actor.kafka;
 
+import com.github.dfauth.actor.Envelope;
 import com.github.dfauth.partial.Tuple2;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -10,7 +11,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 
-public interface EnveloperHandler {
+public interface EnvelopeHandler {
 
     static <T extends SpecificRecordBase> ActorMessage envelope(String key, T record, Serializer<T> serializer) {
         return envelope(key, Collections.emptyMap(), record, serializer);

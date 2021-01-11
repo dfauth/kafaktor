@@ -56,7 +56,7 @@ public class KafkaActorDelegate<T extends SpecificRecordBase> implements ActorDe
             //TODO
             Consumer<Envelope<T>> envelopeConsumer = e -> f.withActorContext(new ActorContextImpl<>()).onMessage(e);
             Function<byte[], Try<ActorMessage>> f1 = envelopeHandler.envelopeDeserializer().tryWithTopic(myConfig.getTopic());
-            Function<ActorMessage, Envelope<T>> f2_1 = am -> Envelope.of((T)envelopeHandler.payload(am));
+            Function<ActorMessage, Envelope<T>> f2_1 = am -> EnvelopeImpl.of((T)envelopeHandler.payload(am));
             Function<Try<ActorMessage>, Try<Envelope<T>>> f2 = t -> t.map(f2_1);
             Function<byte[], Try<Envelope<T>>> f3 = f1.andThen(f2);
             Function<ConsumerRecord<String, byte[]>, Long> c1 = r -> f3.apply(r.value()).map(e -> {

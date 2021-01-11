@@ -1,4 +1,4 @@
-package dfauth.kafaktor.bootstrap;
+package com.github.dfauth.kafka;
 
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;

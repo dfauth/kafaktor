@@ -1,19 +1,19 @@
 package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.Behavior;
-import com.github.dfauth.actor.Envelope;
 import com.github.dfauth.actor.kafka.ActorMessage;
 import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
+import com.github.dfauth.bootstrap.Bootstrapper;
+import com.github.dfauth.bootstrap.Greeting;
+import com.github.dfauth.kafka.RecoveryStrategies;
 import com.github.dfauth.kafka.Stream;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.typesafe.config.Config;
-import dfauth.kafaktor.bootstrap.Bootstrapper;
-import dfauth.kafaktor.bootstrap.RecoveryStrategies;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Test;
@@ -64,7 +64,7 @@ public class BootstrapTest implements Consumer<ActorMessage> {
 
             Behavior<HelloWorldMain.SayHello> behavior = HelloWorldMain.create();
 
-            Stream<String, byte[]> stream = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
+            Stream<String, ActorMessage> stream = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
                     .withProperties(p)
                     .withTopic(TOPIC)
                     .withGroupId(this.getClass().getCanonicalName())
@@ -78,7 +78,7 @@ public class BootstrapTest implements Consumer<ActorMessage> {
                             Map<TopicPartition, Long> eo = c.endOffsets(_p);
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
-                                Bootstrapper<Envelope<HelloWorldMain.SayHello>> bootstrapper = new Bootstrapper(__p, behavior, RecoveryStrategies.timeBased());
+                                Bootstrapper<HelloWorldMain.SayHello, String, ActorMessage>  bootstrapper = new Bootstrapper(__p, behavior, RecoveryStrategies.<String, ActorMessage>timeBased());
                                 bootstrapper.getRecoveryStrategy().invoke(c, __p,() ->
                                     // start of day is 6am local time
                                     Instant.from(LocalDate.now().atTime(LocalTime.of(6,0)).atZone(ZoneId.systemDefault()))
@@ -94,7 +94,8 @@ public class BootstrapTest implements Consumer<ActorMessage> {
                     .build();
             stream.start();
             Thread.sleep(5 * 1000);
-            stream.send(TOPIC, "key", "value".getBytes());
+            Greeting greeting = Greeting.newBuilder().setName("Fred").build();
+            stream.send(TOPIC, "key", envelopeHandler.envelope("key", greeting));
             Thread.sleep(5 * 1000);
         }));
 
