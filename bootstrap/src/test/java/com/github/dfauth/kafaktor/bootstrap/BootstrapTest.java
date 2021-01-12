@@ -62,7 +62,7 @@ public class BootstrapTest implements Consumer<ActorMessage> {
             Injector injector = Guice.createInjector(MyModules.get());
             injector.injectMembers(this);
 
-            Behavior<HelloWorldMain.SayHello> behavior = HelloWorldMain.create();
+            Behavior.Factory<HelloWorldMain.SayHello> behaviorFactory = HelloWorldMain.create();
             Bootstrapper.CachingBootstrapper<String, ActorMessage, HelloWorldMain.SayHello> bootstrapper = new Bootstrapper.CachingBootstrapper(RecoveryStrategies.<String, ActorMessage>timeBased());
 
             Stream<String, ActorMessage> stream = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
@@ -79,7 +79,7 @@ public class BootstrapTest implements Consumer<ActorMessage> {
                             Map<TopicPartition, Long> eo = c.endOffsets(_p);
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
-                                bootstrapper.withBehavior(behavior).withTopicPartition(__p).invoke(c, () ->
+                                bootstrapper.apply("greeting", behaviorFactory).withTopicPartition(__p).invoke(c, () ->
                                     // start of day is 6am local time
                                     Instant.from(LocalDate.now().atTime(LocalTime.of(6,0)).atZone(ZoneId.systemDefault()))
                                 );

@@ -12,7 +12,7 @@ public class HelloWorldMain extends AbstractBehavior<HelloWorldMain.SayHello> {
         }
     }
 
-    public static Behavior<SayHello> create() {
+    public static Behavior.Factory<SayHello> create() {
         return Behaviors.setup(HelloWorldMain::new);
     }
 

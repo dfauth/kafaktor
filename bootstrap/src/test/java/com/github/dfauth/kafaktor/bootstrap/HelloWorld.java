@@ -24,7 +24,7 @@ public class HelloWorld extends AbstractBehavior<HelloWorld.Greet> {
         }
     }
 
-    public static Behavior<Greet> create() {
+    public static Behavior.Factory<Greet> create() {
         return Behaviors.setup(HelloWorld::new);
     }
 

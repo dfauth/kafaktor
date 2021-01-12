@@ -4,7 +4,7 @@ import java.util.function.Function;
 
 public class Behaviors {
 
-    public static <T> Behavior<T> setup(Function<ActorContext<T>, Behavior<T>> f) {
+    public static <T> Behavior.Factory<T> setup(Function<ActorContext<T>, Behavior<T>> f) {
         return new DeferredBehavior(f);
     }
 
@@ -38,7 +38,7 @@ public class Behaviors {
         }
     }
 
-    private static class DeferredBehavior<T> implements Behavior<T> {
+    private static class DeferredBehavior<T> implements Behavior.Factory<T> {
 
         private final Function<ActorContext<T>, Behavior<T>> f;
 
@@ -47,8 +47,8 @@ public class Behaviors {
         }
 
         @Override
-        public Behavior<T> onMessage(Envelope<T> e) {
-            throw new UnsupportedOperationException();
+        public Behavior<T> withActorContext(ActorContext<T> ctx) {
+            return f.apply(ctx);
         }
     }
 }

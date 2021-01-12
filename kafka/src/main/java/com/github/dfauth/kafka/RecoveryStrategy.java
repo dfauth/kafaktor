@@ -15,18 +15,8 @@ public interface RecoveryStrategy<K,V> {
 
     void invoke(KafkaConsumer<K,V> c, TopicPartition p, Supplier<Instant> supplier);
 
-    static <K,V> Curried<K,V> curried(RecoveryStrategy<K,V> recoveryStrategy) {
-        return c -> tp -> s -> recoveryStrategy.invoke(c, tp, s);
-    }
-
     static <K,V> TopicPartitionAware<WithTopicPartition<K,V>> topicPartitionCurry(RecoveryStrategy<K,V> recoveryStrategy) {
-        return tp -> c -> curried(recoveryStrategy).apply(c).apply(tp);
-    }
-
-    interface Curried<K,V> extends KafkaConsumerAware<K,V, TopicPartitionAware<Consumer<Supplier<Instant>>>> {
-        default void invoke(KafkaConsumer<K,V> c, TopicPartition p) {
-            apply(c).apply(p).accept(() -> Instant.ofEpochMilli(0));
-        }
+        return tp -> c -> s -> recoveryStrategy.invoke(c,tp,s);
     }
 
     interface WithTopicPartition<K,V> extends KafkaConsumerAware<K,V,Consumer<Supplier<Instant>>> {

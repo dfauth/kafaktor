@@ -8,7 +8,7 @@ public interface ActorContext<T> {
 
     ActorRef<T> self();
 
-    <R> ActorRef<R> spawn(Behavior<R> behavior, String name);
+    <R> ActorRef<R> spawn(Behavior.Factory<R> behaviorFactory, String name);
 
     Logger getLogger();
 }

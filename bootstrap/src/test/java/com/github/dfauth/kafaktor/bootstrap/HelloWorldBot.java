@@ -4,7 +4,7 @@ import com.github.dfauth.actor.*;
 
 public class HelloWorldBot extends AbstractBehavior<HelloWorld.Greeted> {
 
-    public static Behavior<HelloWorld.Greeted> create(int max) {
+    public static Behavior.Factory<HelloWorld.Greeted> create(int max) {
         return Behaviors.setup(context -> new HelloWorldBot(context, max));
     }
 

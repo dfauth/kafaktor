@@ -97,7 +97,7 @@ public class  ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContex
     }
 
     @Override
-    public <R> ActorRef<R> spawn(Behavior<R> behavior, String name) {
+    public <R> ActorRef<R> spawn(Behavior.Factory<R> behaviorFactory, String name) {
         return null;
     }
 

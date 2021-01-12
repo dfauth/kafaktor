@@ -9,6 +9,6 @@ public abstract class AbstractBehavior<T> implements Behavior<T> {
     }
 
     protected ActorContext<T> getContext() {
-        return null;
+        return context;
     }
 }
