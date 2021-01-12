@@ -63,13 +63,14 @@ public class BootstrapTest implements Consumer<ActorMessage> {
             injector.injectMembers(this);
 
             Behavior<HelloWorldMain.SayHello> behavior = HelloWorldMain.create();
+            Bootstrapper.CachingBootstrapper<String, ActorMessage, HelloWorldMain.SayHello> bootstrapper = new Bootstrapper.CachingBootstrapper(RecoveryStrategies.<String, ActorMessage>timeBased());
 
             Stream<String, ActorMessage> stream = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
                     .withProperties(p)
                     .withTopic(TOPIC)
                     .withGroupId(this.getClass().getCanonicalName())
 //                    .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
-                    .withMessageConsumer(this)
+                    .withRecordConsumer(bootstrapper)
                     .withExecutor(executor)
                     .withPartitionAssignmentEventConsumer(c -> e -> {
                         e.onAssigment(_p -> {
@@ -78,8 +79,7 @@ public class BootstrapTest implements Consumer<ActorMessage> {
                             Map<TopicPartition, Long> eo = c.endOffsets(_p);
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
-                                Bootstrapper<HelloWorldMain.SayHello, String, ActorMessage>  bootstrapper = new Bootstrapper(__p, behavior, RecoveryStrategies.<String, ActorMessage>timeBased());
-                                bootstrapper.getRecoveryStrategy().invoke(c, __p,() ->
+                                bootstrapper.withBehavior(behavior).withTopicPartition(__p).invoke(c, () ->
                                     // start of day is 6am local time
                                     Instant.from(LocalDate.now().atTime(LocalTime.of(6,0)).atZone(ZoneId.systemDefault()))
                                 );
@@ -88,7 +88,7 @@ public class BootstrapTest implements Consumer<ActorMessage> {
                         });
                         e.onRevocation(_p -> {
                             logger.info("partitions revoked: "+_p);
-                            _p.forEach(__p -> Bootstrapper.lookup(__p).ifPresent(b -> b.stop()));
+                            _p.forEach(__p -> Bootstrapper.CachingBootstrapper.lookup(__p).ifPresent(b -> b.stop()));
                         });
                     })
                     .build();

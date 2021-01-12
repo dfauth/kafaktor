@@ -11,12 +11,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class Bootstrapper1<T> {
+public class Bootstrapper1<K,T,V> {
 
     private static final Logger logger = LoggerFactory.getLogger(com.github.dfauth.bootstrap.Bootstrapper.class);
 
     private final String name;
-    private final RecoveryStrategy<String, Envelope<T>> recoveryStrategy;
+    private final RecoveryStrategy<K,V> recoveryStrategy;
     private static final Map<String, Bootstrapper1> instances = new HashMap<>();
     private Behavior<T> behaviour;
 
@@ -28,13 +28,13 @@ public class Bootstrapper1<T> {
         return Optional.ofNullable(instances.get(name(topicPartition)));
     }
 
-    public Bootstrapper1(TopicPartition topicPartition, Behavior<T> behaviour, RecoveryStrategy<String, Envelope<T>> recoveryStrategy) {
+    public Bootstrapper1(TopicPartition topicPartition, Behavior<T> behaviour, RecoveryStrategy<K,V> recoveryStrategy) {
         this.name = name(topicPartition);
         this.behaviour = behaviour;
         this.recoveryStrategy = recoveryStrategy;
     }
 
-    public RecoveryStrategy<String, Envelope<T>> getRecoveryStrategy() {
+    public RecoveryStrategy<K,V> getRecoveryStrategy() {
         return recoveryStrategy;
     }
 
