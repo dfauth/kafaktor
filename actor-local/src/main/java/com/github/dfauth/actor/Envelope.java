@@ -1,15 +1,14 @@
 package com.github.dfauth.actor;
 
-import java.util.*;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static java.util.Objects.nonNull;
 
 public interface Envelope<T> {
 
     T payload();
+
+    <R> Envelope<R> mapPayload(Function<T,R> f);
 
     <R> Optional<Addressable<R>> sender();
 

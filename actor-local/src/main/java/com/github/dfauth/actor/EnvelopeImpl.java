@@ -37,6 +37,11 @@ public class EnvelopeImpl<T> implements Envelope<T> {
         return payload;
     }
 
+    @Override
+    public <R> Envelope<R> mapPayload(Function<T, R> f) {
+        return null;
+    }
+
     public <R> Optional<Addressable<R>> sender() {
         return Optional.ofNullable((Addressable<R>) metadata.get(ADDRESSABLE));
     }

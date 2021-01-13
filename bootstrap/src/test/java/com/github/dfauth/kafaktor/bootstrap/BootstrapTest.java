@@ -1,7 +1,10 @@
 package com.github.dfauth.kafaktor.bootstrap;
 
+import com.github.dfauth.actor.Addressable;
 import com.github.dfauth.actor.Behavior;
+import com.github.dfauth.actor.Envelope;
 import com.github.dfauth.actor.kafka.ActorMessage;
+import com.github.dfauth.actor.kafka.AvroAddressable;
 import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
@@ -15,6 +18,7 @@ import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.typesafe.config.Config;
 import org.apache.avro.specific.SpecificRecordBase;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -25,16 +29,19 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
+import static com.github.dfauth.actor.kafka.ActorMessageDespatchable.ADDRESSABLE;
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static com.github.dfauth.utils.ConfigBuilder.builder;
 import static com.github.dfauth.utils.ConfigBuilder.builderFrom;
 
-public class BootstrapTest implements Consumer<ActorMessage> {
+public class BootstrapTest {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapTest.class);
     private static final String TOPIC = "topic";
@@ -63,7 +70,14 @@ public class BootstrapTest implements Consumer<ActorMessage> {
             injector.injectMembers(this);
 
             Behavior.Factory<HelloWorldMain.SayHello> behaviorFactory = HelloWorldMain.create();
-            Bootstrapper.CachingBootstrapper<String, ActorMessage, HelloWorldMain.SayHello> bootstrapper = new Bootstrapper.CachingBootstrapper(RecoveryStrategies.<String, ActorMessage>timeBased());
+
+            Function<ConsumerRecord<String, ActorMessage>, Envelope<Greeting>> step1 = cr -> transformConsumerRecord(cr);
+            Function<Greeting, HelloWorldMain.SayHello> step2 = g -> new HelloWorldMain.SayHello(g.getName());
+
+            Bootstrapper.CachingBootstrapper<String, ActorMessage, HelloWorldMain.SayHello> bootstrapper = new Bootstrapper.CachingBootstrapper(
+                    RecoveryStrategies.<String, ActorMessage>timeBased(),
+                    step1.andThen(e -> e.mapPayload(step2))
+                    );
 
             Stream<String, ActorMessage> stream = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
                     .withProperties(p)
@@ -101,16 +115,64 @@ public class BootstrapTest implements Consumer<ActorMessage> {
 
     }
 
-    private static final String CONFIG = "{\n" +
-            "  kafka {\n" +
-            "    topic: %s\n" +
-            "    schema.registry.url: \"http://localhost:8080\"\n" +
-            "    schema.registry.autoRegisterSchema: true\n" +
-            "  }\n" +
-            "}";
+    public Envelope<Greeting> transformConsumerRecord(ConsumerRecord<String, ActorMessage> cr) {
+        return new Envelope<>() {
+            @Override
+            public Greeting payload() {
+                return (Greeting) envelopeHandler.payload(cr.value());
+            }
 
-    @Override
-    public void accept(ActorMessage msg) {
-        logger.info("WOOZ received bytes: {}", msg);
+            @Override
+            public <R> Envelope<R> mapPayload(Function<Greeting, R> f) {
+                return null;
+            }
+
+            public <R> Optional<Addressable<R>> sender() {
+                return Optional.ofNullable(cr.value().getMetadata().get(ADDRESSABLE)).map(a -> new AvroAddressable(a));
+            }
+
+            public <R> CompletableFuture<R> replyWith(Function<Greeting,R> f) {
+                R r = f.apply(payload());
+                sender().ifPresent(s -> s.tell(r));
+                return CompletableFuture.completedFuture(r);
+            }
+        };
     }
+
+    /**
+    public static class ConsumerRecordEnvelope<T extends SpecificRecordBase> implements Envelope<T> {
+        private EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
+        private ConsumerRecord<String, ActorMessage> cr;
+
+        public ConsumerRecordEnvelope(EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler, ConsumerRecord<String, ActorMessage> cr) {
+            this.envelopeHandler = envelopeHandler;
+            this.cr = cr;
+        }
+
+        @Override
+        public T payload() {
+            return (T) envelopeHandler.payload(cr.value());
+        }
+
+        @Override
+        public <R> Envelope<R> mapPayload(Function<T, R> f) {
+            return copyOf(f.apply(payload()));
+        }
+
+        public <R> Optional<Addressable<R>> sender() {
+            return Optional.ofNullable(cr.value().getMetadata().get(ADDRESSABLE)).map(a -> new AvroAddressable(a));
+        }
+
+        public <R> CompletableFuture<R> replyWith(Function<T,R> f) {
+            R r = f.apply(payload());
+            sender().ifPresent(s -> s.tell(r));
+            return CompletableFuture.completedFuture(r);
+        }
+
+        private <R extends SpecificRecordBase> Envelope<R> copyOf(R apply) {
+            return new ConsumerRecordEnvelope<R>(this.envelopeHandler, cr);
+        }
+
+    }
+    **/
 }

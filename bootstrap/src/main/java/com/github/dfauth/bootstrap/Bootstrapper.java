@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import static com.github.dfauth.kafka.RecoveryStrategy.topicPartitionCurry;
 
@@ -34,13 +35,15 @@ public interface Bootstrapper<K,V,T> extends BiFunction<String, Behavior.Factory
         private String name = null;
         private Behavior.Factory<T> behaviorFactory;
         private Behavior<T> behavior;
+        private Function<ConsumerRecord<K,V>, Envelope<T>> recordTransformer;
 
         public static final Optional<CachingBootstrapper> lookup(TopicPartition topicPartition) {
             return Optional.ofNullable(instances.get(Bootstrapper.name(topicPartition)));
         }
 
-        public CachingBootstrapper(RecoveryStrategy<K, V> recoveryStrategy) {
+        public CachingBootstrapper(RecoveryStrategy<K, V> recoveryStrategy, Function<ConsumerRecord<K,V>, Envelope<T>> recordTransformer) {
             this.recoveryStrategy = recoveryStrategy;
+            this.recordTransformer = recordTransformer;
         }
 
         public void start() {
@@ -84,7 +87,7 @@ public interface Bootstrapper<K,V,T> extends BiFunction<String, Behavior.Factory
         @Override
         public void accept(ConsumerRecord<K, V> r) {
             logger.info("received consumer record: {}",r);
-            behavior.onMessage((Envelope<T>) r.value());
+            behavior.onMessage(recordTransformer.apply(r));
         }
     }
 }
