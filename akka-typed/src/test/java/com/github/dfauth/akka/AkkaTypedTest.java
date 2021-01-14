@@ -6,7 +6,7 @@ import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
-import com.github.dfauth.bootstrap.Greeting;
+import com.github.dfauth.kafaktor.bootstrap.Greeting;
 import com.github.dfauth.kafka.RecoveryStrategies;
 import com.github.dfauth.kafka.Stream;
 import com.google.inject.Guice;

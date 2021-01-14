@@ -1,4 +1,4 @@
-@namespace("com.github.dfauth.bootstrap")
+@namespace("com.github.dfauth.kafaktor.bootstrap")
 protocol GreetingProtocol {
 
   record Greeting {

@@ -1,7 +1,7 @@
 package com.github.dfauth.akka;
 
 import akka.actor.typed.Behavior;
-import com.github.dfauth.actor.Envelope;
+import com.github.dfauth.kafaktor.bootstrap.Bootstrapper;
 import com.github.dfauth.kafka.RecoveryStrategy;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -13,7 +13,7 @@ import java.util.Optional;
 
 public class Bootstrapper1<K,T,V> {
 
-    private static final Logger logger = LoggerFactory.getLogger(com.github.dfauth.bootstrap.Bootstrapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(Bootstrapper.class);
 
     private final String name;
     private final RecoveryStrategy<K,V> recoveryStrategy;

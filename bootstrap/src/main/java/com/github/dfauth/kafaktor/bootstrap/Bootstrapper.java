@@ -1,4 +1,4 @@
-package com.github.dfauth.bootstrap;
+package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.ActorContext;
 import com.github.dfauth.actor.ActorRef;

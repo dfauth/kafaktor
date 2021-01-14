@@ -1,8 +1,0 @@
-@namespace("com.github.dfauth.bootstrap")
-protocol GreetingProtocol {
-
-  record Greeting {
-    string name;
-  }
-
-}

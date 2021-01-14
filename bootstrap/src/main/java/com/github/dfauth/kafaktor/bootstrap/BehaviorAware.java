@@ -1,4 +1,4 @@
-package com.github.dfauth.bootstrap;
+package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.Behavior;
 import org.slf4j.Logger;
