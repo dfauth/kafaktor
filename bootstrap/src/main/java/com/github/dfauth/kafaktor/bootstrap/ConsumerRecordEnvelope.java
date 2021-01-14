@@ -4,6 +4,8 @@ import com.github.dfauth.actor.Addressable;
 import com.github.dfauth.actor.Envelope;
 import com.github.dfauth.actor.kafka.AvroAddressable;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -15,6 +17,10 @@ public class ConsumerRecordEnvelope<T> implements Envelope<T> {
 
     private final T payload;
     private Map<String, String> metadata;
+
+    public ConsumerRecordEnvelope(T payload) {
+        this(payload, Collections.emptyMap());
+    }
 
     public ConsumerRecordEnvelope(T payload, Map<String, String> metadata) {
         this.payload = payload;
@@ -45,4 +51,9 @@ public class ConsumerRecordEnvelope<T> implements Envelope<T> {
         return new ConsumerRecordEnvelope<>(payload, metadata);
     }
 
+    public ConsumerRecordEnvelope<T> withAddressable(Addressable<T> a) {
+        Map<String, String> tmp = new HashMap(metadata);
+        tmp.put(ADDRESSABLE, a.toString());
+        return new ConsumerRecordEnvelope<>(payload, tmp);
+    }
 }
