@@ -65,12 +65,9 @@ public class BootstrapTest {
 
             Behavior.Factory<HelloWorldMain.SayHello> behaviorFactory = HelloWorldMain.create();
 
-            Function<ConsumerRecord<String, ActorMessage>, Envelope<Greeting>> step1 = cr -> transformConsumerRecord(cr);
-            Function<Greeting, HelloWorldMain.SayHello> step2 = g -> new HelloWorldMain.SayHello(g.getName());
-
             Bootstrapper.CachingBootstrapper<String, ActorMessage, HelloWorldMain.SayHello> bootstrapper = new Bootstrapper.CachingBootstrapper(
                     RecoveryStrategies.<String, ActorMessage>timeBased(),
-                    step1.andThen(e -> e.mapPayload(step2))
+                    envelopeTransformer().andThen(_p -> _p.mapPayload(HelloWorldMain.SayHello.class::cast))
                     );
 
             Stream<String, ActorMessage> stream = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
@@ -109,11 +106,15 @@ public class BootstrapTest {
 
     }
 
-    public Envelope<Greeting> transformConsumerRecord(ConsumerRecord<String, ActorMessage> cr) {
-        return ConsumerRecordEnvelope.create(
-                DeserializingFunction.fromDeserializer(envelopeHandler.serde().deserializer()).withTopic(Greeting.class),
-                cr
-        );
+    private <T extends SpecificRecordBase> Function<ConsumerRecord<String, ActorMessage>, Envelope<T>> envelopeTransformer() {
+        return r -> tryCatch(() -> {
+            Class<T> classOfT = (Class<T>) Class.forName(r.value().getPayloadSchema());
+            return new ConsumerRecordEnvelope<>(
+                    DeserializingFunction.fromDeserializer(envelopeHandler.serde().deserializer()).withTopic(classOfT).apply(r.value().getPayload().array()),
+                    r.value().getMetadata()
+            );
+        });
+
     }
 
 }

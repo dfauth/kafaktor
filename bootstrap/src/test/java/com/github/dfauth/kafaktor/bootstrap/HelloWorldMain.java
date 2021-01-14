@@ -4,12 +4,8 @@ import com.github.dfauth.actor.*;
 
 public class HelloWorldMain extends AbstractBehavior<HelloWorldMain.SayHello> {
 
-    public static class SayHello {
-        public final String name;
-
-        public SayHello(String name) {
-            this.name = name;
-        }
+    interface SayHello {
+        String getName();
     }
 
     public static Behavior.Factory<SayHello> create() {
@@ -26,8 +22,8 @@ public class HelloWorldMain extends AbstractBehavior<HelloWorldMain.SayHello> {
     @Override
     public Behavior<SayHello> onMessage(Envelope<SayHello> e) {
         ActorRef<HelloWorld.Greeted> replyTo =
-                getContext().spawn(HelloWorldBot.create(3), e.payload().name);
-        greeter.tell(new HelloWorld.Greet(e.payload().name, replyTo));
+                getContext().spawn(HelloWorldBot.create(3), e.payload().getName());
+        greeter.tell(new HelloWorld.Greet(e.payload().getName(), replyTo));
         return this;
     }
 

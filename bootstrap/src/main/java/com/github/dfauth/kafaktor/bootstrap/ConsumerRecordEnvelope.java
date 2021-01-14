@@ -2,10 +2,7 @@ package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.Addressable;
 import com.github.dfauth.actor.Envelope;
-import com.github.dfauth.actor.kafka.ActorMessage;
 import com.github.dfauth.actor.kafka.AvroAddressable;
-import org.apache.avro.specific.SpecificRecordBase;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 import java.util.Map;
 import java.util.Optional;
@@ -18,10 +15,6 @@ public class ConsumerRecordEnvelope<T> implements Envelope<T> {
 
     private final T payload;
     private Map<String, String> metadata;
-
-    public static <T extends SpecificRecordBase> ConsumerRecordEnvelope<T> create(Function<byte[], T> f, ConsumerRecord<String, ActorMessage> r) {
-        return new ConsumerRecordEnvelope<T>(f.apply(r.value().getPayload().array()), r.value().getMetadata());
-    }
 
     public ConsumerRecordEnvelope(T payload, Map<String, String> metadata) {
         this.payload = payload;
