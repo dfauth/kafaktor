@@ -3,6 +3,7 @@ package com.github.dfauth.kafaktor.bootstrap;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
 import com.github.dfauth.actor.kafka.ActorMessage;
+import com.github.dfauth.actor.kafka.ConsumerRecordEnvelope;
 import com.github.dfauth.actor.kafka.DeserializingFunction;
 import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
 import com.github.dfauth.actor.kafka.guice.CommonModule;

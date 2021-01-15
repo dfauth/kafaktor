@@ -15,8 +15,8 @@ public class EnvelopeHandlerImpl<T extends SpecificRecordBase> implements Envelo
         this.serde = serde;
     }
 
-    public ActorMessage envelope(String key, T payload) {
-        return EnvelopeHandler.<T>envelope(key, payload, serde.serializer());
+    public ActorMessage envelope(String recipient, T payload) {
+        return EnvelopeHandler.<T>envelope(recipient, payload, serde.serializer());
     }
 
     public ActorMessage envelope(String key, Map<String,String> metadata, T payload) {

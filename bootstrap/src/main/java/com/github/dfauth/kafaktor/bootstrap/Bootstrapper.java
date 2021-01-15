@@ -2,6 +2,7 @@ package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.*;
 import com.github.dfauth.actor.kafka.ActorAddressable;
+import com.github.dfauth.actor.kafka.ConsumerRecordEnvelope;
 import com.github.dfauth.kafka.RecoveryStrategy;
 import com.github.dfauth.kafka.TopicPartitionAware;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

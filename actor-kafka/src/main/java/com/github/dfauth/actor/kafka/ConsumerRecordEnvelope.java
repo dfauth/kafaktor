@@ -1,8 +1,7 @@
-package com.github.dfauth.kafaktor.bootstrap;
+package com.github.dfauth.actor.kafka;
 
 import com.github.dfauth.actor.Addressable;
 import com.github.dfauth.actor.Envelope;
-import com.github.dfauth.actor.kafka.AvroAddressable;
 
 import java.util.Collections;
 import java.util.HashMap;

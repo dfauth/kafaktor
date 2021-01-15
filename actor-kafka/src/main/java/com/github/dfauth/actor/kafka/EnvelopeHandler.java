@@ -1,6 +1,5 @@
 package com.github.dfauth.actor.kafka;
 
-import com.github.dfauth.actor.Envelope;
 import com.github.dfauth.partial.Tuple2;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -10,17 +9,22 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 public interface EnvelopeHandler {
 
-    static <T extends SpecificRecordBase> ActorMessage envelope(String key, T record, Serializer<T> serializer) {
-        return envelope(key, Collections.emptyMap(), record, serializer);
+    static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, T record, Serializer<T> serializer) {
+        return envelope(recipient, Collections.emptyMap(), record, serializer);
     }
 
-    static <T extends SpecificRecordBase> ActorMessage envelope(String key, Map<String, String> metadata, T record, Serializer<T> serializer) {
+    static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, Map<String, String> metadata, T record, Serializer<T> serializer) {
+        return envelope(recipient, Optional.empty(), metadata, record, serializer);
+    }
+
+    static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, Optional<String> optSender, Map<String, String> metadata, T record, Serializer<T> serializer) {
         return ActorMessage.newBuilder()
                 .setTimestamp(Instant.now().toEpochMilli())
-                .setKey(key)
+                .setRecipient(recipient)
                 .setMetadata(metadata)
                 .setPayloadSchema(record.getSchema().getFullName())
                 .setPayload(ByteBuffer.wrap(serializer.serialize(record.getSchema().getFullName(), record)))

@@ -64,9 +64,9 @@ public class EnvelopeConsumerActorTestCase implements Consumer<ActorMessage> {
                 .withMessageConsumer(this)
             );
             Thread.sleep(2 * 1000);
-            stream.send(TOPIC, env.getKey(), env);
+            stream.send(TOPIC, env.getRecipient(), env);
             ActorMessage greeting = envelopeHandler.envelope("fred", GreetingRequest.newBuilder().setName("Fred").build());
-            stream.send(TOPIC, greeting.getKey(), greeting);
+            stream.send(TOPIC, greeting.getRecipient(), greeting);
             Thread.sleep(10 * 1000);
         }));
 

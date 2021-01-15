@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 import static com.github.dfauth.utils.ClassUtils.constructFromConfig;
 
-public interface MessageConsumerEventDespatchable extends Despatchable, Function<Config, ActorRef> {
+public interface MessageConsumerEventDespatchable<E extends MessageConsumerEventDespatchable<E>> extends Despatchable, Function<Config, ActorRef> {
 
     @Override
     default void despatch(DespatchableHandler h) {

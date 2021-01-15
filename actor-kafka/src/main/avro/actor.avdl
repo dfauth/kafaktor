@@ -4,8 +4,9 @@ protocol Actor {
   record ActorMessage {
     long timestamp;
     map<string> metadata;
+    string recipient;
+    union {null, string} sender = null;
     string payloadSchema;
-    string key;
     bytes payload;
   }
 
