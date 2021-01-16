@@ -1,7 +1,7 @@
 package com.github.dfauth.actor.kafka.bootstrap;
 
 import com.github.dfauth.actor.kafka.ActorMessage;
-import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
+import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
@@ -30,7 +30,7 @@ public class EnvelopeConsumerActorTestCase implements Consumer<ActorMessage> {
     private static final String TOPIC = "topic";
 
     @Inject private Stream.Builder<String, byte[]> streamBuilder;
-    @Inject private EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
+    @Inject private EnvelopeHandler<SpecificRecordBase> envelopeHandler;
 
     @Test
     public void testIt() {

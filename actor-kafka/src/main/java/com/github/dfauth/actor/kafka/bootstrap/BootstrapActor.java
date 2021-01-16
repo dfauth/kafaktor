@@ -2,7 +2,7 @@ package com.github.dfauth.actor.kafka.bootstrap;
 
 import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.kafka.ActorMessage;
-import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
+import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.kafka.Stream;
 import com.github.dfauth.utils.ConfigUtils;
 import com.typesafe.config.Config;
@@ -24,13 +24,13 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
 
     private static final String GROUP_ID = "groupId";
     private final Stream.Builder<String,byte[]> streamBuilder;
-    private final EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
+    private final EnvelopeHandler<SpecificRecordBase> envelopeHandler;
     private ConfigUtils config;
     private Stream stream;
     private String name;
 
     @Inject
-    public BootstrapActor(Config config, Stream.Builder<String,byte[]> streamBuilder, EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandlerImpl) {
+    public BootstrapActor(Config config, Stream.Builder<String,byte[]> streamBuilder, EnvelopeHandler<SpecificRecordBase> envelopeHandlerImpl) {
         this.config = wrap(config);
         this.streamBuilder = streamBuilder;
         this.envelopeHandler = envelopeHandlerImpl;

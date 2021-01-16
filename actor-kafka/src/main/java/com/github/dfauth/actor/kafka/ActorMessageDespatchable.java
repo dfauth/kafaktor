@@ -11,6 +11,8 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
+
 public interface ActorMessageDespatchable<E extends ActorMessageDespatchable<E>> {
 
     String ADDRESSABLE = "addressable";
@@ -36,5 +38,13 @@ public interface ActorMessageDespatchable<E extends ActorMessageDespatchable<E>>
     default <T> ActorMessageDespatchable<E> inspectPayload(BiFunction<String, byte[], T> f, Consumer<Envelope<T>> c) {
         c.accept(new ConsumerRecordEnvelope(f.apply(getPayloadSchema(), getPayload().array()), getMetadata()));
         return this;
+    }
+
+    default <T> Class<T> getPayloadType() {
+        return tryCatch(() -> (Class<T>) Class.forName(getPayloadSchema()));
+    }
+
+    default <T extends SpecificRecordBase> Envelope<T> asEnvelope(DeserializingFunction<T> f) {
+        return new ConsumerRecordEnvelope(f.apply(getPayloadSchema(), getPayload().array()), getMetadata());
     }
 }

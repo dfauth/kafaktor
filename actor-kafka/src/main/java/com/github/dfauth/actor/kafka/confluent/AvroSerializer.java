@@ -4,16 +4,16 @@ import com.github.dfauth.actor.kafka.SerializingFunction;
 import io.confluent.kafka.schemaregistry.client.CachedSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
-import org.apache.avro.specific.SpecificRecord;
+import org.apache.avro.specific.SpecificRecordBase;
 
 import java.util.Map;
 import java.util.function.Function;
 
-public class AvroSerializer<T extends SpecificRecord> implements SerializingFunction<T> {
+public class AvroSerializer<T extends SpecificRecordBase> implements SerializingFunction<T> {
 
     private final KafkaAvroSerializer serializer;
 
-    public static <T extends SpecificRecord> Builder<T> builder() {
+    public static <T extends SpecificRecordBase> Builder<T> builder() {
         return new Builder();
     }
 
@@ -27,7 +27,7 @@ public class AvroSerializer<T extends SpecificRecord> implements SerializingFunc
         return serializer.serialize(topic, data);
     }
 
-    public static class Builder<T extends SpecificRecord> {
+    public static class Builder<T extends SpecificRecordBase> {
         private String url = "none";
         private boolean isAutoRegisterSchemas = true;
         private Function<String, SchemaRegistryClient> schemaRegistryClientFactory = url -> new CachedSchemaRegistryClient(url, 1024);

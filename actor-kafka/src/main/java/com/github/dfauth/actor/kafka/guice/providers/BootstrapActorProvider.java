@@ -1,6 +1,6 @@
 package com.github.dfauth.actor.kafka.guice.providers;
 
-import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
+import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.bootstrap.BootstrapActor;
 import com.github.dfauth.kafka.Stream;
 import com.typesafe.config.Config;
@@ -15,8 +15,8 @@ public class BootstrapActorProvider<T extends SpecificRecordBase> implements Pro
     private boolean started = false;
 
     @Inject
-    public BootstrapActorProvider(Config config, Stream.Builder<String, byte[]> streamBuilder, EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandlerImpl) {
-        actor = new BootstrapActor(config, streamBuilder, envelopeHandlerImpl);
+    public BootstrapActorProvider(Config config, Stream.Builder<String, byte[]> streamBuilder, EnvelopeHandler<SpecificRecordBase> envelopeHandler) {
+        actor = new BootstrapActor(config, streamBuilder, envelopeHandler);
     }
 
     @Override

@@ -3,9 +3,8 @@ package com.github.dfauth.kafaktor.bootstrap;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
 import com.github.dfauth.actor.kafka.ActorMessage;
-import com.github.dfauth.actor.kafka.ConsumerRecordEnvelope;
 import com.github.dfauth.actor.kafka.DeserializingFunction;
-import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
+import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
@@ -43,7 +42,7 @@ public class BootstrapTest {
     private ExecutorService executor = Executors.newCachedThreadPool();
 
     @Inject
-    private EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
+    private EnvelopeHandler<SpecificRecordBase> envelopeHandler;
 
     @Test
     public void testIt() {
@@ -101,7 +100,7 @@ public class BootstrapTest {
             stream.start();
             Thread.sleep(5 * 1000);
             Greeting greeting = Greeting.newBuilder().setName("Fred").build();
-            stream.send(TOPIC, "key", envelopeHandler.envelope("key", greeting));
+            stream.send(TOPIC, "greeting", envelopeHandler.envelope("key", greeting));
             Thread.sleep(5 * 1000);
         }));
 
@@ -109,11 +108,9 @@ public class BootstrapTest {
 
     private <T extends SpecificRecordBase> Function<ConsumerRecord<String, ActorMessage>, Envelope<T>> envelopeTransformer() {
         return r -> tryCatch(() -> {
-            Class<T> classOfT = (Class<T>) Class.forName(r.value().getPayloadSchema());
-            return new ConsumerRecordEnvelope<>(
-                    DeserializingFunction.fromDeserializer(envelopeHandler.serde().deserializer()).withTopic(classOfT).apply(r.value().getPayload().array()),
-                    r.value().getMetadata()
-            );
+            Class<T> classOfT = r.value().getPayloadType();
+            DeserializingFunction<T> f = DeserializingFunction.fromDeserializer(envelopeHandler.serde(classOfT).deserializer());
+            return r.value().asEnvelope(f);
         });
 
     }

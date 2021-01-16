@@ -1,6 +1,6 @@
 package com.github.dfauth.actor.kafka.guice.providers;
 
-import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
+import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.confluent.AvroDeserializer;
 import com.github.dfauth.actor.kafka.confluent.AvroSerializer;
 import com.github.dfauth.utils.ConfigUtils;
@@ -13,22 +13,22 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 
 
-public class EnvelopeHandlerProvider implements Provider<EnvelopeHandlerImpl<SpecificRecordBase>> {
+public class EnvelopeHandlerProvider implements Provider<EnvelopeHandler<SpecificRecordBase>> {
 
-    private final EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
+    private final EnvelopeHandler<SpecificRecordBase> envelopeHandler;
 
     @Inject
     public EnvelopeHandlerProvider(Config config, SchemaRegistryClient schemaRegistryClient) {
         ConfigUtils _config = ConfigUtils.wrap(config);
         boolean isAutoRegisterSchema = _config.getBoolean("kafka.schema.registry.autoRegisterSchema").orElse(false);
-        this.envelopeHandler = new EnvelopeHandlerImpl(Serdes.serdeFrom(
+        this.envelopeHandler = EnvelopeHandler.of(Serdes.serdeFrom(
                 AvroSerializer.builder().withAutoRegisterSchema(isAutoRegisterSchema).withSchemaRegistryClient(schemaRegistryClient).build(),
                 AvroDeserializer.builder().withAutoRegisterSchema(isAutoRegisterSchema).withSchemaRegistryClient(schemaRegistryClient).build()
         ));
     }
 
     @Override
-    public EnvelopeHandlerImpl<SpecificRecordBase> get() {
+    public EnvelopeHandler<SpecificRecordBase> get() {
         return envelopeHandler;
     }
 }

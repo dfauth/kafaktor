@@ -2,7 +2,7 @@ package com.github.dfauth.akka;
 
 import akka.actor.typed.Behavior;
 import com.github.dfauth.actor.kafka.ActorMessage;
-import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
+import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
@@ -40,7 +40,7 @@ public class AkkaTypedTest implements Consumer<ActorMessage> {
     private ExecutorService executor = Executors.newCachedThreadPool();
 
     @Inject
-    private EnvelopeHandlerImpl<SpecificRecordBase> envelopeHandler;
+    private EnvelopeHandler<SpecificRecordBase> envelopeHandler;
 
     @Test
     public void testIt() {

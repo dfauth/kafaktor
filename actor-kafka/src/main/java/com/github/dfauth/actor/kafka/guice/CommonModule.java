@@ -1,6 +1,6 @@
 package com.github.dfauth.actor.kafka.guice;
 
-import com.github.dfauth.actor.kafka.EnvelopeHandlerImpl;
+import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.bootstrap.BootstrapActor;
 import com.github.dfauth.actor.kafka.guice.providers.BootstrapActorProvider;
 import com.github.dfauth.actor.kafka.guice.providers.EnvelopeHandlerProvider;
@@ -24,7 +24,7 @@ public class CommonModule extends AbstractModule {
         bind(BootstrapActor.class).toProvider(new TypeLiteral<BootstrapActorProvider<? extends SpecificRecordBase>>(){}).asEagerSingleton();
         bind(MyConfig.class).toProvider(MyConfigProvider.class).asEagerSingleton();
         bind(new TypeLiteral<Stream.Builder<String, byte[]>>(){}).toProvider(StreamBuilderProvider.class).asEagerSingleton();
-        bind(new TypeLiteral<EnvelopeHandlerImpl<SpecificRecordBase>>(){})
+        bind(new TypeLiteral<EnvelopeHandler<SpecificRecordBase>>(){})
                 .toProvider(new TypeLiteral<EnvelopeHandlerProvider>(){}).asEagerSingleton();
     }
 }
