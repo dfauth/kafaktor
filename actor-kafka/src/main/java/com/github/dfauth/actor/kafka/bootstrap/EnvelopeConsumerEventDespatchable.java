@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 import static com.github.dfauth.utils.ClassUtils.constructFromConfig;
 
-public interface EnvelopeConsumerEventDespatchable<E extends EnvelopeConsumerEventDespatchable<E>> extends Despatchable, Function<Config, ActorRef> {
+public interface EnvelopeConsumerEventDespatchable extends Despatchable, Function<Config, ActorRef> {
 
     @Override
     default void despatch(DespatchableHandler h) {
@@ -22,4 +22,8 @@ public interface EnvelopeConsumerEventDespatchable<E extends EnvelopeConsumerEve
     }
 
     String getImplementationClassName();
+
+    interface Builder<E extends EnvelopeConsumerEventDespatchable.Builder<E>> {
+
+    }
 }

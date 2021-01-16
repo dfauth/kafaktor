@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 import static com.github.dfauth.utils.ClassUtils.constructFromConfig;
 
-public interface BehaviorFactoryEventDespatchable<E extends BehaviorFactoryEventDespatchable<E>> extends Despatchable, Function<Config, ActorRef> {
+public interface BehaviorFactoryEventDespatchable extends Despatchable, Function<Config, ActorRef> {
 
     @Override
     default void despatch(DespatchableHandler h) {
@@ -22,4 +22,7 @@ public interface BehaviorFactoryEventDespatchable<E extends BehaviorFactoryEvent
     }
 
     String getImplementationClassName();
+
+    interface Builder<E extends BehaviorFactoryEventDespatchable.Builder<E>> {
+    }
 }

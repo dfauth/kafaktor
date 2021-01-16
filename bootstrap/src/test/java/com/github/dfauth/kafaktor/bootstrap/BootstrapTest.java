@@ -100,7 +100,7 @@ public class BootstrapTest {
             stream.start();
             Thread.sleep(5 * 1000);
             Greeting greeting = Greeting.newBuilder().setName("Fred").build();
-            stream.send(TOPIC, "greeting", envelopeHandler.envelope("key", greeting));
+            stream.send(TOPIC, "greeting", envelopeHandler.envelope("greeting", "sender", greeting));
             Thread.sleep(5 * 1000);
         }));
 

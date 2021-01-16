@@ -36,7 +36,7 @@ import org.apache.avro.message.SchemaStore;
 @$annotation
 #end
 @org.apache.avro.specific.AvroGenerated
-public class ${this.mangle($schema.getName())}#if ($schema.isError()) extends org.apache.avro.specific.SpecificExceptionBase#else extends org.apache.avro.specific.SpecificRecordBase#end implements org.apache.avro.specific.SpecificRecord, $schema.getName()Despatchable<$schema.getName()> {
+public class ${this.mangle($schema.getName())}#if ($schema.isError()) extends org.apache.avro.specific.SpecificExceptionBase#else extends org.apache.avro.specific.SpecificRecordBase#end implements org.apache.avro.specific.SpecificRecord, $schema.getName()Despatchable {
   private static final long serialVersionUID = ${this.fingerprint64($schema)}L;
   public static final org.apache.avro.Schema SCHEMA$ = new org.apache.avro.Schema.Parser().parse(${this.javaSplit($schema.toString())});
   public static org.apache.avro.Schema getClassSchema() { return SCHEMA$; }
@@ -296,7 +296,7 @@ static {
   @org.apache.avro.specific.AvroGenerated
   public static class Builder extends#if ($schema.isError()) org.apache.avro.specific.SpecificErrorBuilderBase<${this.mangle($schema.getName())}>#else org.apache.avro.specific.SpecificRecordBuilderBase<${this.mangle($schema.getName())}>#end
 
-    implements#if ($schema.isError()) org.apache.avro.data.ErrorBuilder<${this.mangle($schema.getName())}>#else org.apache.avro.data.RecordBuilder<${this.mangle($schema.getName())}>#end {
+    implements#if ($schema.isError()) org.apache.avro.data.ErrorBuilder<${this.mangle($schema.getName())}>#else org.apache.avro.data.RecordBuilder<${this.mangle($schema.getName())}>, ${this.mangle($schema.getName())}Despatchable.Builder<${this.mangle($schema.getName())}.Builder>#end {
 
 #foreach ($field in $schema.getFields())
 #if ($field.doc())

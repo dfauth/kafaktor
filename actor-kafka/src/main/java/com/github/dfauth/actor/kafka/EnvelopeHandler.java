@@ -16,6 +16,8 @@ public interface EnvelopeHandler<T> {
 
     ActorMessage envelope(String recipient, T payload);
 
+    ActorMessage envelope(String recipient, String sender, T payload);
+
     ActorMessage envelope(String key, Map<String,String> metadata, T payload);
 
     Tuple2<Map<String, String>, T> extract(ActorMessage actorMessage);
@@ -36,6 +38,10 @@ public interface EnvelopeHandler<T> {
         return new EnvelopeHandler<T>() {
             public ActorMessage envelope(String recipient, T payload) {
                 return EnvelopeHandler.<T>envelope(recipient, payload, serde.serializer());
+            }
+
+            public ActorMessage envelope(String recipient, String sender, T payload) {
+                return EnvelopeHandler.<T>envelope(recipient, sender, Collections.emptyMap(), payload, serde.serializer());
             }
 
             public ActorMessage envelope(String key, Map<String,String> metadata, T payload) {
@@ -76,6 +82,10 @@ public interface EnvelopeHandler<T> {
         return envelope(recipient, Collections.emptyMap(), record, serializer);
     }
 
+    static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, String sender, Map<String, String> metadata, T record, Serializer<T> serializer) {
+        return envelope(recipient, Optional.ofNullable(sender), metadata, record, serializer);
+    }
+
     static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, Map<String, String> metadata, T record, Serializer<T> serializer) {
         return envelope(recipient, Optional.empty(), metadata, record, serializer);
     }
@@ -84,6 +94,7 @@ public interface EnvelopeHandler<T> {
         return ActorMessage.newBuilder()
                 .setTimestamp(Instant.now().toEpochMilli())
                 .setRecipient(recipient)
+                .inline(b -> optSender.map(s -> b.setSender(s)).orElse(b))
                 .setMetadata(metadata)
                 .setPayloadSchema(record.getSchema().getFullName())
                 .setPayload(ByteBuffer.wrap(serializer.serialize(record.getSchema().getFullName(), record)))
