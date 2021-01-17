@@ -14,8 +14,6 @@ import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
 public interface ActorMessageDespatchable {
 
-    String ADDRESSABLE = "addressable";
-
     default <T extends SpecificRecord> T mapPayload(BiFunction<String, byte[], T> f) {
         return f.apply(getPayloadSchema(), getPayload().array());
     }

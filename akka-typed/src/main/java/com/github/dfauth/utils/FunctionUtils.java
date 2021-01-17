@@ -9,6 +9,12 @@ import java.util.function.BinaryOperator;
 
 public class FunctionUtils {
 
+    public static <K,V> Map<K,V> merge(Map<K,V> m, K k, V v) {
+        Map<K, V> tmp = new HashMap<>(m);
+        tmp.merge(k, v, (_k,_v) -> v);
+        return tmp;
+    }
+
     public static <K,V> BinaryOperator<Map<K,V>> combineMap() {
         return (acc1, acc2) -> {
             HashMap<K, V> tmp = new HashMap<>(acc1);

@@ -1,7 +1,6 @@
 package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.*;
-import com.github.dfauth.actor.kafka.ActorAddressable;
 import com.github.dfauth.actor.kafka.ConsumerRecordEnvelope;
 import com.github.dfauth.kafka.RecoveryStrategy;
 import com.github.dfauth.kafka.TopicPartitionAware;
@@ -126,7 +125,7 @@ public interface Bootstrapper<K,V,T> extends BiFunction<String, Behavior.Factory
             public CompletableFuture<T> tell(T t, Optional<Addressable<T>> optAddressable) {
                 CompletableFuture<T> f = new CompletableFuture<T>();
                 ConsumerRecordEnvelope<T> e = new ConsumerRecordEnvelope<T>(t);
-                ConsumerRecordEnvelope<T> result = optAddressable.map(a -> e.withAddressable(a)).orElseGet(() -> e.withAddressable(new ActorAddressable<T>(name)));
+//                ConsumerRecordEnvelope<T> result = optAddressable.map(a -> e.withAddressable(a)).orElseGet(() -> e.withAddressable(new ActorAddressable<T>(name)));
                 return f;
             }
         }
