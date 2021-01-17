@@ -94,7 +94,7 @@ public interface EnvelopeHandler<T> {
         return ActorMessage.newBuilder()
                 .setTimestamp(Instant.now().toEpochMilli())
                 .setRecipient(recipient)
-                .inline(b -> optSender.map(s -> b.setSender(s)).orElse(b))
+                .apply(b -> optSender.map(s -> b.setSender(s)).orElse(b))
                 .setMetadata(metadata)
                 .setPayloadSchema(record.getSchema().getFullName())
                 .setPayload(ByteBuffer.wrap(serializer.serialize(record.getSchema().getFullName(), record)))

@@ -26,6 +26,7 @@ import org.apache.avro.util.Utf8;
 import org.apache.avro.message.BinaryMessageEncoder;
 import org.apache.avro.message.BinaryMessageDecoder;
 import org.apache.avro.message.SchemaStore;
+import java.util.function.UnaryOperator;
 #end
 #if (${this.gettersReturnOptional} || ${this.createOptionalGetters})import java.util.Optional;#end
 
@@ -515,6 +516,10 @@ static {
         throw new org.apache.avro.AvroRuntimeException(e);
       }
     }
+
+      public #if ($schema.getNamespace())$this.mangle($schema.getNamespace()).#end${this.mangle($schema.getName())}.Builder  apply(UnaryOperator<#if ($schema.getNamespace())$this.mangle($schema.getNamespace()).#end${this.mangle($schema.getName())}.Builder> f) {
+        return f.apply(this);
+      }
   }
 
   @SuppressWarnings("unchecked")

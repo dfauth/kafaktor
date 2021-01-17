@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
-import java.util.function.UnaryOperator;
 
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
@@ -44,10 +43,6 @@ public interface ActorMessageDespatchable {
     }
 
     interface Builder<E extends Builder<E>> {
-
-        default E inline(UnaryOperator<E> f) {
-            return f.apply((E)this);
-        }
     }
 
 }
