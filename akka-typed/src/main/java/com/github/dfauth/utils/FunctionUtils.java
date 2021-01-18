@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.stream.Stream;
 
 public class FunctionUtils {
 
@@ -13,6 +14,13 @@ public class FunctionUtils {
         Map<K, V> tmp = new HashMap<>(m);
         tmp.merge(k, v, (_k,_v) -> v);
         return tmp;
+    }
+
+    public static <K,V> Map<K,V> merge(Map<K,V>... maps) {
+        return Stream.of(maps).flatMap(m -> m.entrySet().stream()).reduce(new HashMap<>(),
+                accumulateMap(),
+                combineMap()
+                );
     }
 
     public static <K,V> BinaryOperator<Map<K,V>> combineMap() {
@@ -24,11 +32,7 @@ public class FunctionUtils {
     }
 
     public static <K,V> BiFunction<Map<K,V>, Map.Entry<K,V>, Map<K,V>> accumulateMap() {
-        return (acc, e) -> {
-            HashMap<K, V> tmp = new HashMap<>(acc);
-            tmp.put(e.getKey(), e.getValue());
-            return tmp;
-        };
+        return (acc, e) -> merge(acc, e.getKey(), e.getValue());
     }
 
     public static <T> BinaryOperator<List<T>> combineList() {

@@ -2,9 +2,8 @@ package com.github.dfauth.actor;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
-public interface Addressable<T> extends Function<T, CompletableFuture<?>> {
+public interface Addressable<T> {
 
     default CompletableFuture<T> tell(T t) {
         return tell(t, Optional.empty());
@@ -15,9 +14,4 @@ public interface Addressable<T> extends Function<T, CompletableFuture<?>> {
     }
 
     CompletableFuture<T> tell(T t, Optional<Addressable<T>> addressable);
-
-    @Override
-    default CompletableFuture<T> apply(T t) {
-        return tell(t);
-    }
 }
