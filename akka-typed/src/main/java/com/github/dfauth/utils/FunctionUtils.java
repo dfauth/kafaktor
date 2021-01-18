@@ -12,8 +12,42 @@ public class FunctionUtils {
 
     public static <K,V> Map<K,V> merge(Map<K,V> m, K k, V v) {
         Map<K, V> tmp = new HashMap<>(m);
-        tmp.merge(k, v, (_k,_v) -> v);
+        tmp.merge(k,v, (_k, _v) -> v);
         return tmp;
+    }
+
+    public static <K,V> Map<K,V> merge(Map<K,V> m, K k, V v, K k1, V v1) {
+        return merge(m, immutableEntryOf(k, v), immutableEntryOf(k1, v1));
+    }
+
+    public static <K,V> Map<K,V> merge(Map<K,V> m, K k, V v, K k1, V v1, K k2, V v2) {
+        return merge(m, immutableEntryOf(k, v), immutableEntryOf(k1, v1), immutableEntryOf(k2, v2));
+    }
+
+    private static <K, V> Map.Entry<K, V> immutableEntryOf(K k, V v) {
+        return new Map.Entry<>(){
+            @Override
+            public K getKey() {
+                return k;
+            }
+
+            @Override
+            public V getValue() {
+                return v;
+            }
+
+            @Override
+            public V setValue(V value) {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
+
+    public static <K,V> Map<K,V> merge(Map<K,V> m, Map.Entry<K,V>... entries) {
+        return Stream.of(entries).reduce(m,
+                accumulateMap(),
+                combineMap()
+        );
     }
 
     public static <K,V> Map<K,V> merge(Map<K,V>... maps) {
