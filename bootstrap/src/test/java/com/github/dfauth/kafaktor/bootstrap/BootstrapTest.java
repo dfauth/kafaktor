@@ -75,7 +75,7 @@ public class BootstrapTest {
                     .withTopic(TOPIC)
                     .withGroupId(this.getClass().getCanonicalName())
 //                    .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
-                    .withRecordConsumer(bootstrapper)
+                    .withRecordConsumer(bootstrapper.withName("greeting").withBehaviorFactory(behaviorFactory))
                     .withExecutor(executor)
                     .withPartitionAssignmentEventConsumer(c -> e -> {
                         e.onAssigment(_p -> {
@@ -84,7 +84,7 @@ public class BootstrapTest {
                             Map<TopicPartition, Long> eo = c.endOffsets(_p);
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
-                                bootstrapper.apply("greeting", behaviorFactory).withTopicPartition(__p).invoke(c, () ->
+                                bootstrapper.withTopicPartition(__p).invoke(c, () ->
                                     // start of day is 6am local time
                                     Instant.from(LocalDate.now().atTime(LocalTime.of(6,0)).atZone(ZoneId.systemDefault()))
                                 );

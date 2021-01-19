@@ -6,37 +6,20 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
-public class DelegatingActorContext<T, R> implements ParentContext<R>, ActorRef<T>, Behavior<T> {
+public class DelegatingActorContext<T> implements ParentContext<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(DelegatingActorContext.class);
 
-    private final ParentContext<R> parent;
+    private final ParentContext<T> parent;
     private final String name;
-    private final Behavior.Factory<T> behaviorFactory;
-    private Behavior<T> behavior;
 
-    public DelegatingActorContext(ParentContext<R> parent, String name, Behavior.Factory<T> behaviorFactory) {
+    public DelegatingActorContext(ParentContext<T> parent, String name) {
         this.parent = requireNonNull(parent);
         this.name = requireNonNull(name);
-        this.behaviorFactory = requireNonNull(behaviorFactory);
-    }
-
-    public DelegatingActorContext<T, R> start() {
-        behavior = this.behaviorFactory.withActorContext(actorContext());
-        return this;
-    }
-
-    @Override
-    public <R> CompletableFuture<R> ask(T t) {
-        return (CompletableFuture<R>) parent.publish(t);
-    }
-
-    @Override
-    public String id() {
-        return getId().orElseThrow(() -> new IllegalStateException("Will never happen"));
     }
 
     @Override
@@ -46,24 +29,20 @@ public class DelegatingActorContext<T, R> implements ParentContext<R>, ActorRef<
 
     @Override
     public <S> ActorRef<S> spawn(Behavior.Factory<S> behaviorFactory, String name) {
-        return new DelegatingActorContext<>(this, name, behaviorFactory).start();
+        BehaviorWithActorRef<S> behavior = new DelegatingActorContext<>(this, name).withBehaviorFactory(behaviorFactory);
+        return behavior.get();
     }
 
     @Override
-    public Optional<ParentContext<R>> getParentContext() {
+    public Optional<ParentContext<T>> getParentContext() {
         return Optional.of(parent);
-    }
-
-    @Override
-    public CompletableFuture<T> tell(T t, Optional<Addressable<T>> optAddressable) {
-        return publish(t);
     }
 
     public <R> ActorContext<R> actorContext() {
         return new ActorContext<>() {
             @Override
             public String id() {
-                return DelegatingActorContext.this.id();
+                return DelegatingActorContext.this.getId().orElseThrow();
             }
 
             @Override
@@ -83,13 +62,44 @@ public class DelegatingActorContext<T, R> implements ParentContext<R>, ActorRef<
         };
     }
 
-    @Override
-    public boolean isFinal() {
-        return behavior.isFinal();
+    public <R> BehaviorWithActorRef<R> withBehaviorFactory(Behavior.Factory<R> factory) {
+        var ref = new Object() {
+            Behavior<R> behavior = factory.withActorContext(actorContext());
+        };
+        return new BehaviorWithActorRef<R>() {
+            @Override
+            public ActorRef<R> get() {
+                return new ActorRef<R>() {
+                    @Override
+                    public <R1> CompletableFuture<R1> ask(R r) {
+                        return null;
+                    }
+
+                    @Override
+                    public String id() {
+                        return name;
+                    }
+
+                    @Override
+                    public CompletableFuture<R> tell(R r, Optional<Addressable<R>> rAddressable) {
+                        return DelegatingActorContext.this.publish(r);
+                    }
+                };
+            }
+
+            @Override
+            public boolean isFinal() {
+                return ref.behavior.isFinal();
+            }
+
+            @Override
+            public Behavior<R> onMessage(Envelope<R> e) {
+                ref.behavior = ref.behavior.onMessage(e);
+                return this;
+            }
+        };
     }
 
-    @Override
-    public Behavior<T> onMessage(Envelope<T> e) {
-        return behavior.onMessage(e);
+    interface BehaviorWithActorRef<T> extends Behavior<T>, Supplier<ActorRef<T>> {
     }
 }
