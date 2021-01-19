@@ -1,5 +1,6 @@
 package com.github.dfauth.akka;
 
+import akka.actor.typed.ActorSystem;
 import akka.actor.typed.Behavior;
 import com.github.dfauth.kafaktor.bootstrap.Bootstrapper;
 import com.github.dfauth.kafka.RecoveryStrategy;
@@ -11,6 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
+
 public class Bootstrapper1<K,T,V> {
 
     private static final Logger logger = LoggerFactory.getLogger(Bootstrapper.class);
@@ -19,6 +22,7 @@ public class Bootstrapper1<K,T,V> {
     private final RecoveryStrategy<K,V> recoveryStrategy;
     private static final Map<String, Bootstrapper1> instances = new HashMap<>();
     private Behavior<T> behaviour;
+    private ActorSystem<T> system;
 
     public static final String name(TopicPartition topicPartition) {
         return String.format("%s-%d", topicPartition.topic(), topicPartition.partition());
@@ -40,9 +44,11 @@ public class Bootstrapper1<K,T,V> {
 
     public void start() {
         instances.put(name, this);
+        system = ActorSystem.create(behaviour, name);
     }
 
     public boolean stop() {
+        tryCatch(() -> system.terminate());
         return instances.remove(name, this);
     }
 }

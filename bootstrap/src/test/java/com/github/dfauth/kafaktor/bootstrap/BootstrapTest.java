@@ -75,7 +75,7 @@ public class BootstrapTest {
                     .withTopic(TOPIC)
                     .withGroupId(this.getClass().getCanonicalName())
 //                    .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
-                    .withRecordConsumer(bootstrapper.withName("greeting").withBehaviorFactory(behaviorFactory))
+                    .withRecordProcessor(bootstrapper.withName("greeting").withBehaviorFactory(behaviorFactory))
                     .withExecutor(executor)
                     .withPartitionAssignmentEventConsumer(c -> e -> {
                         e.onAssigment(_p -> {

@@ -16,10 +16,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static com.github.dfauth.kafka.RecoveryStrategy.topicPartitionCurry;
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
 public interface Bootstrapper<K,V,T> extends ActorContainer<K,V,T>, TopicPartitionAware<RecoveryStrategy.WithTopicPartition<K,V>> {
 
@@ -67,13 +67,17 @@ public interface Bootstrapper<K,V,T> extends ActorContainer<K,V,T>, TopicPartiti
         }
 
         @Override
-        public BehaviorFactoryAware<T, Consumer<ConsumerRecord<K, V>>> withName(String name) {
+        public BehaviorFactoryAware<T, ConsumerRecordProcessor<K, V>> withName(String name) {
             DelegatingActorContext<T> ctx = new DelegatingActorContext<>(this, name);
             return factory -> {
                 DelegatingActorContext.BehaviorWithActorRef<T> behavior = ctx.withBehaviorFactory(factory);
                 return r -> {
                     logger.info("received consumer record: {}", r);
-                    behavior.onMessage(recordTransformer.apply(r));
+                    Offset result = () -> r.offset() + 1;
+                    return tryCatch(() -> {
+                        behavior.onMessage(recordTransformer.apply(r));
+                        return result;
+                    }, ignored -> result);
                 };
             };
         }
