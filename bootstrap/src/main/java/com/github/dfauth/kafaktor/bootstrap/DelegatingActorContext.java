@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 
 import static java.util.Objects.requireNonNull;
 
@@ -30,7 +29,7 @@ public class DelegatingActorContext<T> implements ParentContext<T> {
     @Override
     public <S> ActorRef<S> spawn(Behavior.Factory<S> behaviorFactory, String name) {
         BehaviorWithActorRef<S> behavior = new DelegatingActorContext<>(this, name).withBehaviorFactory(behaviorFactory);
-        return behavior.get();
+        return behavior.getActorRef();
     }
 
     @Override
@@ -68,7 +67,7 @@ public class DelegatingActorContext<T> implements ParentContext<T> {
         };
         return new BehaviorWithActorRef<R>() {
             @Override
-            public ActorRef<R> get() {
+            public ActorRef<R> getActorRef() {
                 return new ActorRef<R>() {
                     @Override
                     public <R1> CompletableFuture<R1> ask(R r) {
@@ -100,6 +99,7 @@ public class DelegatingActorContext<T> implements ParentContext<T> {
         };
     }
 
-    interface BehaviorWithActorRef<T> extends Behavior<T>, Supplier<ActorRef<T>> {
+    interface BehaviorWithActorRef<T> extends Behavior<T> {
+        ActorRef<T> getActorRef();
     }
 }

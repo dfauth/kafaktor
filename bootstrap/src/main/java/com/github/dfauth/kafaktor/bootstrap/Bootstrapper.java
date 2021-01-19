@@ -58,7 +58,7 @@ public interface Bootstrapper<K,V,T> extends ActorContainer<K,V,T>, TopicPartiti
         public <R> ActorRef<R> spawn(Behavior.Factory<R> behaviorFactory, String name) {
             DelegatingActorContext<T> ctx = new DelegatingActorContext<>(this, name);
             DelegatingActorContext.BehaviorWithActorRef<R> b = ctx.withBehaviorFactory(behaviorFactory);
-            return b.get();
+            return b.getActorRef();
         }
 
         @Override
