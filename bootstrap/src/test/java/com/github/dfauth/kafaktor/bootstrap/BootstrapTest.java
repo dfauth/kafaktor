@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
+import static com.github.dfauth.kafaktor.bootstrap.Bootstrapper.name;
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static com.github.dfauth.utils.ConfigBuilder.builder;
@@ -63,10 +64,12 @@ public class BootstrapTest {
             Injector injector = Guice.createInjector(MyModules.get());
             injector.injectMembers(this);
 
-            Behavior.Factory<HelloWorldMain.SayHello> behaviorFactory = HelloWorldMain.create();
+            Behavior.Factory<HelloWorldMain.SayHello> guardian = HelloWorldMain.create();
 
-            Bootstrapper.CachingBootstrapper<String, ActorMessage, HelloWorldMain.SayHello> bootstrapper = new Bootstrapper.CachingBootstrapper(
-                    RecoveryStrategies.<String, ActorMessage>timeBased(),
+            Instant sod = Instant.from(LocalDate.now().atTime(LocalTime.of(6, 0)).atZone(ZoneId.systemDefault()));
+
+            Bootstrapper.CachingBootstrapper<String, ActorMessage> bootstrapper = new Bootstrapper.CachingBootstrapper(
+                    RecoveryStrategies.<String, ActorMessage>timeBased().withTimestamp(sod),
                     envelopeTransformer().andThen(_p -> _p.mapPayload(HelloWorldMain.SayHello.class::cast))
                     );
 
@@ -75,7 +78,7 @@ public class BootstrapTest {
                     .withTopic(TOPIC)
                     .withGroupId(this.getClass().getCanonicalName())
 //                    .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
-                    .withRecordProcessor(bootstrapper.withName("greeting").withBehaviorFactory(behaviorFactory))
+                    .withRecordProcessor(bootstrapper)
                     .withExecutor(executor)
                     .withPartitionAssignmentEventConsumer(c -> e -> {
                         e.onAssigment(_p -> {
@@ -84,16 +87,13 @@ public class BootstrapTest {
                             Map<TopicPartition, Long> eo = c.endOffsets(_p);
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
-                                bootstrapper.withTopicPartition(__p).invoke(c, () ->
-                                    // start of day is 6am local time
-                                    Instant.from(LocalDate.now().atTime(LocalTime.of(6,0)).atZone(ZoneId.systemDefault()))
-                                );
-                                bootstrapper.start();
+                                bootstrapper.getRecoveryStrategy().invoke(c, __p);
+                                bootstrapper.createActorSystem(name(__p), guardian);
                             });
                         });
                         e.onRevocation(_p -> {
                             logger.info("partitions revoked: "+_p);
-                            _p.forEach(__p -> Bootstrapper.CachingBootstrapper.lookup(__p).ifPresent(b -> b.stop()));
+                            _p.forEach(__p -> Bootstrapper.CachingBootstrapper.lookup(name(__p)).ifPresent(b -> b.stop()));
                         });
                     })
                     .build();

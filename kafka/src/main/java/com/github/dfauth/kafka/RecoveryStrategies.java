@@ -1,36 +1,32 @@
 package com.github.dfauth.kafka;
 
-public class RecoveryStrategies<K,V> {
+public class RecoveryStrategies {
 
-    public static final <K,V> RecoveryStrategy<K,V> timeBased() {
-        return (c, p, supplier) -> {
-            OffsetManager.Utils.<K,V>timeBased().withKafkaConsumer(c)
-                    .withTopicPartition(p)
-                    .accept(supplier);
+    public static final <K,V> TimestampAware.RecoveryStrategy<K,V> timeBased() {
+        return i -> (c, p) -> {
+            OffsetManager.Utils.<K,V>timeBased(i).withKafkaConsumer(c)
+                    .withTopicPartition(p);
         };
     }
 
     public static final <K,V> RecoveryStrategy<K,V> seekToStart() {
-        return (c, p, supplier) -> {
+        return (c, p) -> {
             OffsetManager.Utils.<K,V>seekToStart().withKafkaConsumer(c)
-                    .withTopicPartition(p)
-                    .accept(supplier);
+                    .withTopicPartition(p);
         };
     }
 
     public static final <K,V> RecoveryStrategy<K,V> current() {
-        return (c, p, supplier) -> {
+        return (c, p) -> {
             OffsetManager.Utils.<K,V>current().withKafkaConsumer(c)
-                    .withTopicPartition(p)
-                    .accept(supplier);
+                    .withTopicPartition(p);
         };
     }
 
     public static final <K,V> RecoveryStrategy<K,V> seekToEnd() {
-        return (c, p, supplier) -> {
+        return (c, p) -> {
             OffsetManager.Utils.<K,V>seekToEnd().withKafkaConsumer(c)
-                    .withTopicPartition(p)
-                    .accept(supplier);
+                    .withTopicPartition(p);
         };
     }
 }

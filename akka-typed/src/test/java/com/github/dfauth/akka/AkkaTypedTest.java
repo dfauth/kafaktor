@@ -77,11 +77,8 @@ public class AkkaTypedTest implements Consumer<ActorMessage> {
                             Map<TopicPartition, Long> eo = c.endOffsets(_p);
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
-                                Bootstrapper1<String, HelloWorldMain.SayHello, ActorMessage> bootstrapper = new Bootstrapper1(__p, behavior, RecoveryStrategies.<String, ActorMessage>timeBased());
-                                bootstrapper.getRecoveryStrategy().invoke(c, __p,() ->
-                                    // start of day is 6am local time
-                                    Instant.from(LocalDate.now().atTime(LocalTime.of(6,0)).atZone(ZoneId.systemDefault()))
-                                );
+                                Bootstrapper1<String, HelloWorldMain.SayHello, ActorMessage> bootstrapper = new Bootstrapper1(__p, behavior, RecoveryStrategies.<String, ActorMessage>timeBased().withTimestamp(Instant.from(LocalDate.now().atTime(LocalTime.of(6,0)).atZone(ZoneId.systemDefault()))));
+                                bootstrapper.getRecoveryStrategy().invoke(c, __p);
                                 bootstrapper.start();
                             });
                         });

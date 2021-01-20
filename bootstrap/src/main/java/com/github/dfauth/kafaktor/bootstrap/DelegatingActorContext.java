@@ -1,6 +1,7 @@
 package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.*;
+import org.checkerframework.checker.units.qual.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,16 +10,18 @@ import java.util.concurrent.CompletableFuture;
 
 import static java.util.Objects.requireNonNull;
 
-public class DelegatingActorContext<T> implements ParentContext<T> {
+public class DelegatingActorContext<T,R> implements ParentContext<R> {
 
     private static final Logger logger = LoggerFactory.getLogger(DelegatingActorContext.class);
 
-    private final ParentContext<T> parent;
+    private final ParentContext<R> parent;
     private final String name;
+    private final Behavior<T> behavior;
 
-    public DelegatingActorContext(ParentContext<T> parent, String name) {
+    public DelegatingActorContext(ParentContext<R> parent, String name, Behavior.Factory<T> behaviorFactory) {
         this.parent = requireNonNull(parent);
         this.name = requireNonNull(name);
+        this.behavior = behaviorFactory.withActorContext(actorContext());
     }
 
     @Override
@@ -28,12 +31,12 @@ public class DelegatingActorContext<T> implements ParentContext<T> {
 
     @Override
     public <S> ActorRef<S> spawn(Behavior.Factory<S> behaviorFactory, String name) {
-        BehaviorWithActorRef<S> behavior = new DelegatingActorContext<>(this, name).withBehaviorFactory(behaviorFactory);
-        return behavior.getActorRef();
+        DelegatingActorContext<S,R> _behavior = new DelegatingActorContext<S,R>(this, name, behaviorFactory);
+        return null;
     }
 
     @Override
-    public Optional<ParentContext<T>> getParentContext() {
+    public Optional<ParentContext<R>> getParentContext() {
         return Optional.of(parent);
     }
 
@@ -61,40 +64,35 @@ public class DelegatingActorContext<T> implements ParentContext<T> {
         };
     }
 
-    public <R> BehaviorWithActorRef<R> withBehaviorFactory(Behavior.Factory<R> factory) {
-        var ref = new Object() {
-            Behavior<R> behavior = factory.withActorContext(actorContext());
-        };
-        return new BehaviorWithActorRef<R>() {
+    public boolean stop() {
+        return false;
+    }
+
+    @Override
+    public Optional<ParentContext<R>> findActor(K key, Class<R> expectedType) {
+        return Optional.empty();
+    }
+
+    @Override
+    public void onMessage(Envelope<R> apply) {
+
+    }
+
+    public ActorRef<T> getActorRef() {
+        return new ActorRef<T>() {
             @Override
-            public ActorRef<R> getActorRef() {
-                return new ActorRef<R>() {
-                    @Override
-                    public <R1> CompletableFuture<R1> ask(R r) {
-                        return null;
-                    }
-
-                    @Override
-                    public String id() {
-                        return name;
-                    }
-
-                    @Override
-                    public CompletableFuture<R> tell(R r, Optional<Addressable<R>> rAddressable) {
-                        return DelegatingActorContext.this.publish(r);
-                    }
-                };
+            public <R> CompletableFuture<R> ask(T t) {
+                return publish(t).thenApply(_t -> (R)null);
             }
 
             @Override
-            public boolean isFinal() {
-                return ref.behavior.isFinal();
+            public String id() {
+                return name;
             }
 
             @Override
-            public Behavior<R> onMessage(Envelope<R> e) {
-                ref.behavior = ref.behavior.onMessage(e);
-                return this;
+            public CompletableFuture<T> tell(T t, Optional<Addressable<T>> tAddressable) {
+                return publish(t);
             }
         };
     }

@@ -2,6 +2,8 @@ package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.Behavior;
+import com.github.dfauth.actor.Envelope;
+import org.checkerframework.checker.units.qual.K;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -25,4 +27,10 @@ public interface ParentContext<T> {
     default Optional<ParentContext<T>> getParentContext() {
         return Optional.empty();
     }
+
+    boolean stop();
+
+    Optional<ParentContext<T>> findActor(K key, Class<T> expectedType);
+
+    void onMessage(Envelope<T> apply);
 }
