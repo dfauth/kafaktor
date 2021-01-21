@@ -3,8 +3,8 @@ package com.github.dfauth.kafka;
 public class RecoveryStrategies {
 
     public static final <K,V> TimestampAware.RecoveryStrategy<K,V> timeBased() {
-        return i -> (c, p) -> {
-            OffsetManager.Utils.<K,V>timeBased(i).withKafkaConsumer(c)
+        return s -> (c, p) -> {
+            OffsetManager.Utils.<K,V>timeBased(s).withKafkaConsumer(c)
                     .withTopicPartition(p);
         };
     }

@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import static com.github.dfauth.partial.VoidFunction.peek;
 
@@ -16,7 +17,8 @@ public interface OffsetManager<K,V> extends KafkaConsumerAware<K,V,TopicPartitio
 
         private static final Logger logger = LoggerFactory.getLogger(OffsetManager.class);
 
-        public static <K,V> OffsetManager<K,V> timeBased(Instant i) {
+        public static <K,V> OffsetManager<K,V> timeBased(Supplier<Instant> s) {
+            Instant i = s.get();
             return c -> p -> Optional.ofNullable(c.offsetsForTimes(Map.of(p, i.toEpochMilli())).get(p))
                     .map(peek(o -> {
                         c.seek(p, o.offset());

@@ -69,7 +69,7 @@ public class BootstrapTest {
             Instant sod = Instant.from(LocalDate.now().atTime(LocalTime.of(6, 0)).atZone(ZoneId.systemDefault()));
 
             Bootstrapper.CachingBootstrapper<String, ActorMessage> bootstrapper = new Bootstrapper.CachingBootstrapper(
-                    RecoveryStrategies.<String, ActorMessage>timeBased().withTimestamp(sod),
+                    RecoveryStrategies.<String, ActorMessage>timeBased().withTimestamp(() -> sod),
                     envelopeTransformer().andThen(_p -> _p.mapPayload(HelloWorldMain.SayHello.class::cast))
                     );
 
