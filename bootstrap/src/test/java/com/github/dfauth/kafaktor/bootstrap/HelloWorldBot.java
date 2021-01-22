@@ -23,7 +23,7 @@ public class HelloWorldBot extends AbstractBehavior<HelloWorld.Greeted> {
         if (greetingCounter == max) {
             return Behaviors.stopped();
         } else {
-            e.payload().from.tell(new HelloWorld.Greet(e.payload().whom, getContext().self()));
+            e.replyWith(p -> Greet.newBuilder().setWhom(p.whom).build());
             return this;
         }
     }

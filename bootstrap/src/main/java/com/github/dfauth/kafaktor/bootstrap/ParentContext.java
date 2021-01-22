@@ -3,6 +3,7 @@ package com.github.dfauth.kafaktor.bootstrap;
 import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.checkerframework.checker.units.qual.K;
 
 import java.util.Optional;
@@ -16,11 +17,19 @@ public interface ParentContext<T> {
 
     <R> ActorRef<R> spawn(Behavior.Factory<R> behaviorFactory, String name);
 
-    default <R> CompletableFuture<R> publish(R msg) {
+    default <R> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg) {
+        return publish(recipient, msg, Optional.empty());
+    }
+
+    default <R> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, KafkaActorRef<T,?> sender) {
+        return publish(recipient, msg, Optional.ofNullable(sender));
+    }
+
+    default <R> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<T,?>> optSender) {
         // either provide a parental context to delagate to
         // or implement publishing
         return getParentContext()
-                .map(c -> c.publish(msg))
+                .map(c -> c.publish(recipient, msg, optSender))
                 .orElse(CompletableFuture.failedFuture(new IllegalStateException("No implementation of publish provided")));
     }
 

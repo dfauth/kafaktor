@@ -26,8 +26,10 @@ public class HelloWorldMain extends AbstractBehavior<HelloWorldMain.SayHello> {
     public Behavior<SayHello> onMessage(Envelope<SayHello> e) {
         ActorRef<HelloWorld.Greeted> replyTo =
                 getContext().spawn(HelloWorldBot.create(3), e.payload().getName());
-        CompletableFuture<HelloWorld.Greet> f = greeter.tell(new HelloWorld.Greet(e.payload().getName(), replyTo));
+        CompletableFuture<HelloWorld.Greet> f = greeter.tell(Greet.newBuilder().setWhom(e.payload().getName()).build());
         f.handle((_payload,_exception) -> {
+            Optional.ofNullable(_payload).ifPresent(_e ->
+                    getContext().getLogger().info("published payload {}",_payload));
             Optional.ofNullable(_exception).ifPresent(_e ->
                     getContext().getLogger().error(_e.getMessage(), _e));
             return HelloWorldMain.this;

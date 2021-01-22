@@ -5,4 +5,8 @@ protocol GreetingProtocol {
     string name;
   }
 
+  record Greet {
+    string whom;
+  }
+
 }

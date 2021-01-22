@@ -49,21 +49,13 @@ public interface Bootstrapper<K,V> extends ConsumerRecordProcessor<K,V> {
             this.recordTransformer = recordTransformer;
         }
 
-        public <T> void createActorSystem(String name, Behavior.Factory<T> guardianBehavior) {
-            instances.put(name, new RootActorContext<>(name, guardianBehavior));
+        public <T> void createActorSystem(String name, Behavior.Factory<T> guardianBehavior, Publisher publisher) {
+            instances.put(name, new RootActorContext<>(name, guardianBehavior, publisher));
         }
 
         public boolean stop() {
             return Optional.ofNullable(instances.remove(name)).map(ctx -> ctx.stop()).orElse(false);
         }
-
-//        @Override
-//        public BehaviorFactoryAware.Consumer<T> withName(String name) {
-//            DelegatingActorContext<T> ctx = new DelegatingActorContext<>(instances.get(name), name);
-//            return factory -> {
-//                DelegatingActorContext.BehaviorWithActorRef<T> behavior = ctx.withBehaviorFactory(factory);
-//            };
-//        }
 
         @Override
         public Offset process(ConsumerRecord<K, V> r) {

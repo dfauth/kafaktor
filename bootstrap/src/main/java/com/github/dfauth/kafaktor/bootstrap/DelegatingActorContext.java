@@ -1,12 +1,14 @@
 package com.github.dfauth.kafaktor.bootstrap;
 
-import com.github.dfauth.actor.*;
+import com.github.dfauth.actor.ActorContext;
+import com.github.dfauth.actor.ActorRef;
+import com.github.dfauth.actor.Behavior;
+import com.github.dfauth.actor.Envelope;
 import org.checkerframework.checker.units.qual.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import static java.util.Objects.requireNonNull;
 
@@ -79,25 +81,6 @@ public class DelegatingActorContext<T,R> implements ParentContext<R> {
     }
 
     public ActorRef<T> getActorRef() {
-        return new ActorRef<T>() {
-            @Override
-            public <R> CompletableFuture<R> ask(T t) {
-                return publish(t).thenApply(_t -> (R)null);
-            }
-
-            @Override
-            public String id() {
-                return name;
-            }
-
-            @Override
-            public CompletableFuture<T> tell(T t, Optional<Addressable<T>> tAddressable) {
-                return publish(t);
-            }
-        };
-    }
-
-    interface BehaviorWithActorRef<T> extends Behavior<T> {
-        ActorRef<T> getActorRef();
+        return new KafkaActorRef<>(this, name);
     }
 }

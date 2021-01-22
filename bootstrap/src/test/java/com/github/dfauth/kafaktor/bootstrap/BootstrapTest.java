@@ -16,6 +16,7 @@ import com.google.inject.Injector;
 import com.typesafe.config.Config;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -26,6 +27,8 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
@@ -73,6 +76,23 @@ public class BootstrapTest {
                     envelopeTransformer().andThen(_p -> _p.mapPayload(HelloWorldMain.SayHello.class::cast))
                     );
 
+            Stream<String, ActorMessage> stream0 = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
+                    .withProperties(p)
+                    .withTopic(TOPIC)
+                    .withGroupId(this.getClass().getCanonicalName())
+                    .build();
+
+            Publisher publisher =  new Publisher() {
+                @Override
+                public <R, T> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<T,?>> optSender) {
+                    return tryCatch(() -> {
+                        return stream0.send(TOPIC, optSender
+                                .map(s -> envelopeHandler.envelope(recipient.toString(), s.toString(), (SpecificRecordBase) msg))
+                                .orElse(envelopeHandler.envelope(recipient.toString(), (SpecificRecordBase) msg)));
+                    });
+                }
+            };
+
             Stream<String, ActorMessage> stream = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
                     .withProperties(p)
                     .withTopic(TOPIC)
@@ -88,7 +108,7 @@ public class BootstrapTest {
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
                                 bootstrapper.getRecoveryStrategy().invoke(c, __p);
-                                bootstrapper.createActorSystem(name(__p), guardian);
+                                bootstrapper.createActorSystem(name(__p), guardian, publisher);
                             });
                         });
                         e.onRevocation(_p -> {
@@ -101,7 +121,7 @@ public class BootstrapTest {
             Thread.sleep(5 * 1000);
             Greeting greeting = Greeting.newBuilder().setName("Fred").build();
             stream.send(TOPIC, "greeting", envelopeHandler.envelope("greeting", "sender", greeting));
-            Thread.sleep(5 * 1000);
+            Thread.sleep(50 * 1000);
         }));
 
     }

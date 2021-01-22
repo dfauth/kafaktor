@@ -4,6 +4,7 @@ import com.github.dfauth.actor.ActorContext;
 import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.checkerframework.checker.units.qual.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static java.util.Objects.requireNonNull;
 
@@ -21,10 +23,17 @@ public class RootActorContext<T> implements ParentContext<T> {
     private final String name;
     private Behavior<T> guardianBehavior;
     private Map<String, DelegatingActorContext<?,T>> children = new HashMap<>();
+    private Publisher publisher;
 
-    public RootActorContext(String name, Behavior.Factory<T> guardianBehaviorFactory) {
+    public RootActorContext(String name, Behavior.Factory<T> guardianBehaviorFactory, Publisher publisher) {
         this.name = requireNonNull(name);
         this.guardianBehavior = guardianBehaviorFactory.withActorContext(actorContext());
+        this.publisher = publisher;
+    }
+
+    @Override
+    public <R> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<T,?>> optSender) {
+        return publisher.publish(recipient, msg, optSender);
     }
 
     @Override
