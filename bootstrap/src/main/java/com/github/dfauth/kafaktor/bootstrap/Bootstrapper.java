@@ -37,8 +37,8 @@ public interface Bootstrapper<K,V> extends ConsumerRecordProcessor<K,V> {
 
         private final RecoveryStrategy<K, V> recoveryStrategy;
         private static final Map<String, ParentContext> instances = new HashMap<>();
-        private String name = null;
         private Function<ConsumerRecord<K,V>, Envelope<?>> recordTransformer;
+        private String name;
 
         public static final Optional<ParentContext> lookup(String name) {
             return Optional.ofNullable(instances.get(name));
@@ -49,8 +49,9 @@ public interface Bootstrapper<K,V> extends ConsumerRecordProcessor<K,V> {
             this.recordTransformer = recordTransformer;
         }
 
-        public <T> void createActorSystem(String name, Behavior.Factory<T> guardianBehavior, Publisher publisher) {
-            instances.put(name, new RootActorContext<>(name, guardianBehavior, publisher));
+        public <T> void createActorSystem(String topic, int partition, Behavior.Factory<T> guardianBehavior, Publisher publisher) {
+            name = name(topic, partition);
+            instances.put(name, new RootActorContext<>(topic, guardianBehavior, publisher, name));
         }
 
         public boolean stop() {

@@ -45,7 +45,9 @@ public class TestCase {
 
             CompletableFuture<RecordMetadata> _f = stream.send(TOPIC, MESSAGE);
             _f.thenAccept(r -> logger.info("metadata: {}", r));
-            Try.tryWith(() -> _f.get(3, TimeUnit.SECONDS)).recover(_t -> f.completeExceptionally(_t));
+            Try.tryWith(() -> _f.get(3, TimeUnit.SECONDS)).recover(_t -> {
+                f.completeExceptionally(_t);
+            });
             return f;
         });
 

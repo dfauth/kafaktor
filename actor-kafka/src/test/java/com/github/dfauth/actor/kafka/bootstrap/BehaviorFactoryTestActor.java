@@ -3,7 +3,7 @@ package com.github.dfauth.actor.kafka.bootstrap;
 import com.github.dfauth.actor.ActorContext;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
-import com.github.dfauth.actor.kafka.ActorMessage;
+import com.github.dfauth.actor.kafka.avro.ActorMessage;
 import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

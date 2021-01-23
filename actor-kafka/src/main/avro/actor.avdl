@@ -1,11 +1,16 @@
-@namespace("com.github.dfauth.actor.kafka")
+@namespace("com.github.dfauth.actor.kafka.avro")
 protocol Actor {
+
+  record Address {
+    string topic;
+    string key;
+  }
 
   record ActorMessage {
     long timestamp;
     map<string> metadata;
-    string recipient;
-    union {null, string} sender = null;
+    Address recipient;
+    union {null, Address} sender = null;
     string payloadSchema;
     bytes payload;
   }

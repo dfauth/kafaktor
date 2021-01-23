@@ -2,9 +2,10 @@ package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
-import com.github.dfauth.actor.kafka.ActorMessage;
 import com.github.dfauth.actor.kafka.DeserializingFunction;
 import com.github.dfauth.actor.kafka.EnvelopeHandler;
+import com.github.dfauth.actor.kafka.avro.ActorMessage;
+import com.github.dfauth.actor.kafka.avro.AddressDespatchable;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
@@ -35,6 +36,7 @@ import java.util.function.Function;
 
 import static com.github.dfauth.kafaktor.bootstrap.Bootstrapper.name;
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
+import static com.github.dfauth.trycatch.Try.tryWith;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static com.github.dfauth.utils.ConfigBuilder.builder;
 import static com.github.dfauth.utils.ConfigBuilder.builderFrom;
@@ -86,9 +88,18 @@ public class BootstrapTest {
                 @Override
                 public <R, T> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<T,?>> optSender) {
                     return tryCatch(() -> {
-                        return stream0.send(TOPIC, optSender
-                                .map(s -> envelopeHandler.envelope(recipient.toString(), s.toString(), (SpecificRecordBase) msg))
-                                .orElse(envelopeHandler.envelope(recipient.toString(), (SpecificRecordBase) msg)));
+                        ActorMessage payload = optSender
+                                .map(s -> envelopeHandler.envelope(recipient.toAddress(), s.toAddress(), (SpecificRecordBase) msg))
+                                .orElse(envelopeHandler.envelope(recipient.toAddress(), (SpecificRecordBase) msg));
+                        CompletableFuture<RecordMetadata> f = stream0.send(payload.getRecipient().getTopic(), payload.getRecipient().getKey(), payload);
+                        f.handle(tryWith()).thenApply(_try ->
+                            _try.recover(e -> {
+                                logger.error(e.getMessage(), e);
+                            }).accept(m ->
+                                logger.info("successfully published key: {}, value{} to topic: {}, partition: {}, offset: {}",payload.getRecipient(), payload, m.topic(),m.partition(),m.offset())
+                            )
+                        );
+                        return f;
                     });
                 }
             };
@@ -108,7 +119,7 @@ public class BootstrapTest {
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
                                 bootstrapper.getRecoveryStrategy().invoke(c, __p);
-                                bootstrapper.createActorSystem(name(__p), guardian, publisher);
+                                bootstrapper.createActorSystem(__p.topic(), __p.partition(), guardian, publisher);
                             });
                         });
                         e.onRevocation(_p -> {
@@ -120,10 +131,24 @@ public class BootstrapTest {
             stream.start();
             Thread.sleep(5 * 1000);
             Greeting greeting = Greeting.newBuilder().setName("Fred").build();
-            stream.send(TOPIC, "greeting", envelopeHandler.envelope("greeting", "sender", greeting));
-            Thread.sleep(50 * 1000);
+            stream.send(TOPIC, "greeting", envelopeHandler.envelope(toAddress(TOPIC, "greeting"), toAddress(TOPIC,"sender"), greeting));
+            Thread.sleep(5 * 1000);
         }));
 
+    }
+
+    private AddressDespatchable toAddress(String topic, String key) {
+        return new AddressDespatchable() {
+            @Override
+            public String getTopic() {
+                return topic;
+            }
+
+            @Override
+            public String getKey() {
+                return key;
+            }
+        };
     }
 
     private <T extends SpecificRecordBase> Function<ConsumerRecord<String, ActorMessage>, Envelope<T>> envelopeTransformer() {

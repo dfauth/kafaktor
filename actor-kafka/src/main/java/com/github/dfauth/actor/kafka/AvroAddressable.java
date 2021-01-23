@@ -1,6 +1,7 @@
 package com.github.dfauth.actor.kafka;
 
 import com.github.dfauth.actor.Addressable;
+import com.github.dfauth.actor.kafka.avro.AddressDespatchable;
 import org.apache.avro.specific.SpecificRecordBase;
 
 import java.util.Optional;
@@ -9,10 +10,10 @@ import java.util.concurrent.CompletableFuture;
 public class AvroAddressable<T extends SpecificRecordBase> implements Addressable<T> {
 
 
-    private final String name;
+    private final AddressDespatchable address;
 
-    public AvroAddressable(String name) {
-        this.name = name;
+    public AvroAddressable(AddressDespatchable address) {
+        this.address = address;
     }
 
     @Override

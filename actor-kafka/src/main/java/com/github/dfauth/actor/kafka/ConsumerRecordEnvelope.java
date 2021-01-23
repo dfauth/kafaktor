@@ -2,6 +2,7 @@ package com.github.dfauth.actor.kafka;
 
 import com.github.dfauth.actor.Addressable;
 import com.github.dfauth.actor.Envelope;
+import com.github.dfauth.actor.kafka.avro.AddressDespatchable;
 
 import java.util.Collections;
 import java.util.Map;
@@ -13,7 +14,7 @@ public class ConsumerRecordEnvelope<T> implements Envelope<T> {
 
     private final T payload;
     private Map<String, String> metadata;
-    private final Optional<String> optSender;
+    private final Optional<AddressDespatchable> optSender;
 
     public ConsumerRecordEnvelope(T payload) {
         this(payload, Collections.emptyMap(), Optional.empty());
@@ -23,7 +24,7 @@ public class ConsumerRecordEnvelope<T> implements Envelope<T> {
         this(payload, metadata, Optional.empty());
     }
 
-    public ConsumerRecordEnvelope(T payload, Map<String, String> metadata, Optional<String> optSender) {
+    public ConsumerRecordEnvelope(T payload, Map<String, String> metadata, Optional<AddressDespatchable> optSender) {
         this.payload = payload;
         this.metadata = metadata;
         this.optSender = optSender;

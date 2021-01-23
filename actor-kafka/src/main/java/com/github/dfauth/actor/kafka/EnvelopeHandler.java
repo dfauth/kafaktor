@@ -1,5 +1,7 @@
 package com.github.dfauth.actor.kafka;
 
+import com.github.dfauth.actor.kafka.avro.ActorMessage;
+import com.github.dfauth.actor.kafka.avro.AddressDespatchable;
 import com.github.dfauth.partial.Tuple2;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -12,13 +14,15 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
+import static com.github.dfauth.actor.kafka.avro.AddressDespatchable.toAddress;
+
 public interface EnvelopeHandler<T> {
 
-    ActorMessage envelope(String recipient, T payload);
+    ActorMessage envelope(AddressDespatchable recipient, T payload);
 
-    ActorMessage envelope(String recipient, String sender, T payload);
+    ActorMessage envelope(AddressDespatchable recipient, AddressDespatchable sender, T payload);
 
-    ActorMessage envelope(String key, Map<String,String> metadata, T payload);
+    ActorMessage envelope(AddressDespatchable key, Map<String,String> metadata, T payload);
 
     Tuple2<Map<String, String>, T> extract(ActorMessage actorMessage);
 
@@ -36,15 +40,15 @@ public interface EnvelopeHandler<T> {
 
     static <T extends SpecificRecordBase> EnvelopeHandler<T> of(Serde<T> serde) {
         return new EnvelopeHandler<T>() {
-            public ActorMessage envelope(String recipient, T payload) {
+            public ActorMessage envelope(AddressDespatchable recipient, T payload) {
                 return EnvelopeHandler.<T>envelope(recipient, payload, serde.serializer());
             }
 
-            public ActorMessage envelope(String recipient, String sender, T payload) {
+            public ActorMessage envelope(AddressDespatchable recipient, AddressDespatchable sender, T payload) {
                 return EnvelopeHandler.<T>envelope(recipient, sender, Collections.emptyMap(), payload, serde.serializer());
             }
 
-            public ActorMessage envelope(String key, Map<String,String> metadata, T payload) {
+            public ActorMessage envelope(AddressDespatchable key, Map<String,String> metadata, T payload) {
                 return EnvelopeHandler.<T>envelope(key, metadata, payload, serde.serializer());
             }
 
@@ -78,23 +82,23 @@ public interface EnvelopeHandler<T> {
         };
     }
 
-    static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, T record, Serializer<T> serializer) {
+    static <T extends SpecificRecordBase> ActorMessage envelope(AddressDespatchable recipient, T record, Serializer<T> serializer) {
         return envelope(recipient, Collections.emptyMap(), record, serializer);
     }
 
-    static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, String sender, Map<String, String> metadata, T record, Serializer<T> serializer) {
+    static <T extends SpecificRecordBase> ActorMessage envelope(AddressDespatchable recipient, AddressDespatchable sender, Map<String, String> metadata, T record, Serializer<T> serializer) {
         return envelope(recipient, Optional.ofNullable(sender), metadata, record, serializer);
     }
 
-    static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, Map<String, String> metadata, T record, Serializer<T> serializer) {
+    static <T extends SpecificRecordBase> ActorMessage envelope(AddressDespatchable recipient, Map<String, String> metadata, T record, Serializer<T> serializer) {
         return envelope(recipient, Optional.empty(), metadata, record, serializer);
     }
 
-    static <T extends SpecificRecordBase> ActorMessage envelope(String recipient, Optional<String> optSender, Map<String, String> metadata, T record, Serializer<T> serializer) {
+    static <T extends SpecificRecordBase> ActorMessage envelope(AddressDespatchable recipient, Optional<AddressDespatchable> optSender, Map<String, String> metadata, T record, Serializer<T> serializer) {
         return ActorMessage.newBuilder()
                 .setTimestamp(Instant.now().toEpochMilli())
-                .setRecipient(recipient)
-                .apply(b -> optSender.map(s -> b.setSender(s)).orElse(b))
+                .setRecipient(toAddress(recipient))
+                .apply(b -> optSender.map(s -> b.setSender(toAddress(s))).orElse(b))
                 .setMetadata(metadata)
                 .setPayloadSchema(record.getSchema().getFullName())
                 .setPayload(ByteBuffer.wrap(serializer.serialize(record.getSchema().getFullName(), record)))

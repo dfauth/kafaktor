@@ -1,4 +1,4 @@
-@namespace("com.github.dfauth.actor.kafka.bootstrap")
+@namespace("com.github.dfauth.actor.kafka.avro")
 protocol Bootstrap {
 
   record BehaviorFactoryEvent {

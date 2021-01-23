@@ -19,11 +19,21 @@ public class DelegatingActorContext<T,R> implements ParentContext<R> {
     private final ParentContext<R> parent;
     private final String name;
     private final Behavior<T> behavior;
+    private Optional<String> optTopic;
 
     public DelegatingActorContext(ParentContext<R> parent, String name, Behavior.Factory<T> behaviorFactory) {
+        this(parent, name, behaviorFactory, Optional.empty());
+    }
+
+    public DelegatingActorContext(ParentContext<R> parent, String name, Behavior.Factory<T> behaviorFactory, String topic) {
+        this(parent, name, behaviorFactory, Optional.ofNullable(topic));
+    }
+
+    public DelegatingActorContext(ParentContext<R> parent, String name, Behavior.Factory<T> behaviorFactory, Optional<String> optTopic) {
         this.parent = requireNonNull(parent);
         this.name = requireNonNull(name);
         this.behavior = behaviorFactory.withActorContext(actorContext());
+        this.optTopic = optTopic;
     }
 
     @Override
@@ -33,8 +43,8 @@ public class DelegatingActorContext<T,R> implements ParentContext<R> {
 
     @Override
     public <S> ActorRef<S> spawn(Behavior.Factory<S> behaviorFactory, String name) {
-        DelegatingActorContext<S,R> _behavior = new DelegatingActorContext<S,R>(this, name, behaviorFactory);
-        return null;
+        DelegatingActorContext<S,R> ctx = new DelegatingActorContext<S,R>(this, name, behaviorFactory);
+        return ctx.getActorRef();
     }
 
     @Override
@@ -80,7 +90,12 @@ public class DelegatingActorContext<T,R> implements ParentContext<R> {
 
     }
 
+    @Override
+    public String getTopic() {
+        return optTopic.orElse(parent.getTopic());
+    }
+
     public ActorRef<T> getActorRef() {
-        return new KafkaActorRef<>(this, name);
+        return new KafkaActorRef<>(this, name, optTopic);
     }
 }

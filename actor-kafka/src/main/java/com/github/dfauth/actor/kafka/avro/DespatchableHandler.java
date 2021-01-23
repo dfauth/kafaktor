@@ -1,4 +1,4 @@
-package com.github.dfauth.actor.kafka.bootstrap;
+package com.github.dfauth.actor.kafka.avro;
 
 public interface DespatchableHandler {
     void handle(BehaviorFactoryEventDespatchable record);

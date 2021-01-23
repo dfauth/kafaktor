@@ -1,7 +1,10 @@
-package com.github.dfauth.actor.kafka;
+package com.github.dfauth.actor.kafka.avro;
 
 import com.github.dfauth.actor.Addressable;
 import com.github.dfauth.actor.Envelope;
+import com.github.dfauth.actor.kafka.AvroAddressable;
+import com.github.dfauth.actor.kafka.ConsumerRecordEnvelope;
+import com.github.dfauth.actor.kafka.DeserializingFunction;
 import org.apache.avro.specific.SpecificRecord;
 import org.apache.avro.specific.SpecificRecordBase;
 
@@ -18,9 +21,9 @@ public interface ActorMessageDespatchable {
         return f.apply(getPayloadSchema(), getPayload().array());
     }
 
-    String getRecipient();
+    AddressDespatchable getRecipient();
 
-    String getSender();
+    AddressDespatchable getSender();
 
     default <T extends SpecificRecordBase> Optional<Addressable<T>> getOptSender() {
         return Optional.ofNullable(getSender()).map(s -> new AvroAddressable<T>(s));

@@ -1,9 +1,8 @@
-package com.github.dfauth.actor.kafka.bootstrap;
+package com.github.dfauth.actor.kafka.avro;
 
 import com.github.dfauth.actor.Actor;
 import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.MessageConsumer;
-import com.github.dfauth.actor.kafka.ActorMessage;
 import com.typesafe.config.Config;
 
 import java.util.function.Function;

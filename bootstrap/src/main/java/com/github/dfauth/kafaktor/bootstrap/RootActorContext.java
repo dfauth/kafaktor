@@ -24,8 +24,10 @@ public class RootActorContext<T> implements ParentContext<T> {
     private Behavior<T> guardianBehavior;
     private Map<String, DelegatingActorContext<?,T>> children = new HashMap<>();
     private Publisher publisher;
+    private String topic;
 
-    public RootActorContext(String name, Behavior.Factory<T> guardianBehaviorFactory, Publisher publisher) {
+    public RootActorContext(String topic, Behavior.Factory<T> guardianBehaviorFactory, Publisher publisher, String name) {
+        this.topic = topic;
         this.name = requireNonNull(name);
         this.guardianBehavior = guardianBehaviorFactory.withActorContext(actorContext());
         this.publisher = publisher;
@@ -77,5 +79,10 @@ public class RootActorContext<T> implements ParentContext<T> {
     @Override
     public void onMessage(Envelope<T> e) {
         guardianBehavior = guardianBehavior.onMessage(e);
+    }
+
+    @Override
+    public String getTopic() {
+        return topic;
     }
 }

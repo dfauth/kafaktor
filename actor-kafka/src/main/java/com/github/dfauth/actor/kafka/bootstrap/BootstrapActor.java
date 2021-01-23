@@ -1,8 +1,8 @@
 package com.github.dfauth.actor.kafka.bootstrap;
 
 import com.github.dfauth.actor.ActorRef;
-import com.github.dfauth.actor.kafka.ActorMessage;
 import com.github.dfauth.actor.kafka.EnvelopeHandler;
+import com.github.dfauth.actor.kafka.avro.*;
 import com.github.dfauth.kafka.Stream;
 import com.github.dfauth.utils.ConfigUtils;
 import com.typesafe.config.Config;
@@ -58,7 +58,7 @@ public class BootstrapActor implements Consumer<ConsumerRecord<String, byte[]>>,
         logger.info("received record: {}",record);
         ActorMessage actorMessage = envelopeHandler.envelopeDeserializer().deserialize(record.topic(), record.value());
         logger.info("received actor message: {}",actorMessage);
-        BiFunction<String, byte[], ? extends Despatchable> xdeserializer = (t,p) -> (Despatchable) envelopeHandler.envelopeDeserializer().deserialize(t,p);
+        BiFunction<String, byte[], ? extends Despatchable> xdeserializer = (t, p) -> (Despatchable) envelopeHandler.envelopeDeserializer().deserialize(t,p);
         Despatchable payload = actorMessage.mapPayload(xdeserializer);
         payload.despatch(this);
     }

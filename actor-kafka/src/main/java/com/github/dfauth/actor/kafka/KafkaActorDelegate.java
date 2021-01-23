@@ -1,6 +1,7 @@
 package com.github.dfauth.actor.kafka;
 
 import com.github.dfauth.actor.*;
+import com.github.dfauth.actor.kafka.avro.ActorMessage;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.ProdModule;

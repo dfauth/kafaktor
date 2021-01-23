@@ -42,4 +42,6 @@ public interface ParentContext<T> {
     Optional<ParentContext<T>> findActor(K key, Class<T> expectedType);
 
     void onMessage(Envelope<T> apply);
+
+    String getTopic();
 }

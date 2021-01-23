@@ -4,6 +4,7 @@ import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.Addressable;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Behaviors;
+import com.github.dfauth.actor.kafka.avro.AddressDespatchable;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -15,10 +16,20 @@ public class KafkaActorRef<T,R> implements ActorRef<T> {
 
     private ParentContext<R> ctx;
     private final String name;
+    private final Optional<String> optTopic;
 
     public KafkaActorRef(ParentContext<R> ctx, String name) {
+        this(ctx, name, Optional.empty());
+    }
+
+    public KafkaActorRef(ParentContext<R> ctx, String name, String topic) {
+        this(ctx, name, Optional.ofNullable(topic));
+    }
+
+    public KafkaActorRef(ParentContext<R> ctx, String name, Optional<String> optTopic) {
         this.ctx = ctx;
         this.name = name;
+        this.optTopic = optTopic;
     }
 
     @Override
@@ -45,5 +56,19 @@ public class KafkaActorRef<T,R> implements ActorRef<T> {
                 .map(a -> ctx.publish(this, t, (KafkaActorRef<R, ?>) a))
                 .orElse(ctx.publish(this, t))
                 .thenApply(ignored -> t);
+    }
+
+    public AddressDespatchable toAddress() {
+        return new AddressDespatchable(){
+            @Override
+            public String getTopic() {
+                return optTopic.orElse(ctx.getTopic());
+            }
+
+            @Override
+            public String getKey() {
+                return name;
+            }
+        };
     }
 }
