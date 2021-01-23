@@ -1,4 +1,4 @@
-package com.github.dfauth.akka.utils;
+package com.github.dfauth.utils;
 
 import org.junit.Test;
 import org.slf4j.Logger;

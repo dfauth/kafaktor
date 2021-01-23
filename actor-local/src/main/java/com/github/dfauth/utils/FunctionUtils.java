@@ -6,7 +6,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
+import java.util.function.Function;
 import java.util.stream.Stream;
+
+import static java.util.function.Function.identity;
 
 public class FunctionUtils {
 
@@ -66,7 +69,11 @@ public class FunctionUtils {
     }
 
     public static <K,V> BiFunction<Map<K,V>, Map.Entry<K,V>, Map<K,V>> accumulateMap() {
-        return (acc, e) -> merge(acc, e.getKey(), e.getValue());
+        return accumulateMap(identity(), identity());
+    }
+
+    public static <K,V,J,U> BiFunction<Map<J,U>, Map.Entry<K,V>, Map<J,U>> accumulateMap(Function<K,J> keyMapper, Function<V,U> valueMapper) {
+        return (acc, e) -> merge(acc, keyMapper.apply(e.getKey()), valueMapper.apply(e.getValue()));
     }
 
     public static <T> BinaryOperator<List<T>> combineList() {
