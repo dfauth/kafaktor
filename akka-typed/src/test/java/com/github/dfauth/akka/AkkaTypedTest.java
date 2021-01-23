@@ -3,7 +3,6 @@ package com.github.dfauth.akka;
 import akka.actor.typed.Behavior;
 import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.avro.ActorMessage;
-import com.github.dfauth.actor.kafka.avro.AddressDespatchable;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
@@ -29,6 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
+import static com.github.dfauth.actor.kafka.avro.AddressDespatchable.toAddressDespatchable;
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static com.github.dfauth.utils.ConfigBuilder.builder;
@@ -92,33 +92,11 @@ public class AkkaTypedTest implements Consumer<ActorMessage> {
             stream.start();
             Thread.sleep(5 * 1000);
             Greeting greeting = Greeting.newBuilder().setName("Fred").build();
-            stream.send(TOPIC, "key", envelopeHandler.envelope(toAddress(TOPIC, "key"), greeting));
+            stream.send(TOPIC, "key", envelopeHandler.envelope(toAddressDespatchable(TOPIC, "key"), greeting));
             Thread.sleep(5 * 1000);
         }));
 
     }
-
-    private AddressDespatchable toAddress(String topic, String key) {
-        return new AddressDespatchable() {
-            @Override
-            public String getTopic() {
-                return topic;
-            }
-
-            @Override
-            public String getKey() {
-                return key;
-            }
-        };
-    }
-
-    private static final String CONFIG = "{\n" +
-            "  kafka {\n" +
-            "    topic: %s\n" +
-            "    schema.registry.url: \"http://localhost:8080\"\n" +
-            "    schema.registry.autoRegisterSchema: true\n" +
-            "  }\n" +
-            "}";
 
     @Override
     public void accept(ActorMessage msg) {

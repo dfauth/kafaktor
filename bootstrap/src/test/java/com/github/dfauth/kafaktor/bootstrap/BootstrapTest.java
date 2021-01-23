@@ -5,7 +5,6 @@ import com.github.dfauth.actor.Envelope;
 import com.github.dfauth.actor.kafka.DeserializingFunction;
 import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.avro.ActorMessage;
-import com.github.dfauth.actor.kafka.avro.AddressDespatchable;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
@@ -34,6 +33,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Function;
 
+import static com.github.dfauth.actor.kafka.avro.AddressDespatchable.toAddressDespatchable;
 import static com.github.dfauth.kafaktor.bootstrap.Bootstrapper.name;
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.Try.tryWith;
@@ -131,24 +131,10 @@ public class BootstrapTest {
             stream.start();
             Thread.sleep(5 * 1000);
             Greeting greeting = Greeting.newBuilder().setName("Fred").build();
-            stream.send(TOPIC, "greeting", envelopeHandler.envelope(toAddress(TOPIC, "greeting"), toAddress(TOPIC,"sender"), greeting));
+            stream.send(TOPIC, "greeting", envelopeHandler.envelope(toAddressDespatchable(TOPIC, "greeting"), toAddressDespatchable(TOPIC,"sender"), greeting));
             Thread.sleep(5 * 1000);
         }));
 
-    }
-
-    private AddressDespatchable toAddress(String topic, String key) {
-        return new AddressDespatchable() {
-            @Override
-            public String getTopic() {
-                return topic;
-            }
-
-            @Override
-            public String getKey() {
-                return key;
-            }
-        };
     }
 
     private <T extends SpecificRecordBase> Function<ConsumerRecord<String, ActorMessage>, Envelope<T>> envelopeTransformer() {

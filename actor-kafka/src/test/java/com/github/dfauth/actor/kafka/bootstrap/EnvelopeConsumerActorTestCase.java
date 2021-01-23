@@ -2,7 +2,6 @@ package com.github.dfauth.actor.kafka.bootstrap;
 
 import com.github.dfauth.actor.kafka.EnvelopeHandler;
 import com.github.dfauth.actor.kafka.avro.ActorMessage;
-import com.github.dfauth.actor.kafka.avro.AddressDespatchable;
 import com.github.dfauth.actor.kafka.avro.EnvelopeConsumerEvent;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
@@ -20,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
+import static com.github.dfauth.actor.kafka.avro.AddressDespatchable.toAddressDespatchable;
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static com.github.dfauth.utils.ConfigBuilder.builder;
@@ -58,7 +58,7 @@ public class EnvelopeConsumerActorTestCase implements Consumer<ActorMessage> {
             Injector injector = Guice.createInjector(MyModules.get());
             injector.injectMembers(this);
 
-            ActorMessage env = envelopeHandler.envelope(addressOf(TOPIC, actorRef), msg);
+            ActorMessage env = envelopeHandler.envelope(toAddressDespatchable(TOPIC, actorRef), msg);
             Stream<String, ActorMessage> stream = streamBuilder.build(b -> b
                 .withGroupId(this.getClass().getCanonicalName())
                 .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
@@ -67,25 +67,11 @@ public class EnvelopeConsumerActorTestCase implements Consumer<ActorMessage> {
             );
             Thread.sleep(2 * 1000);
             stream.send(env.getRecipient().getTopic(), env.getRecipient().getKey(), env);
-            ActorMessage greeting = envelopeHandler.envelope(addressOf(TOPIC, "fred"), GreetingRequest.newBuilder().setName("Fred").build());
+            ActorMessage greeting = envelopeHandler.envelope(toAddressDespatchable(TOPIC, "fred"), GreetingRequest.newBuilder().setName("Fred").build());
             stream.send(greeting.getRecipient().getTopic(), greeting.getRecipient().getKey(), greeting);
             Thread.sleep(10 * 1000);
         }));
 
-    }
-
-    private AddressDespatchable addressOf(String topic, String actorRef) {
-        return new AddressDespatchable() {
-            @Override
-            public String getTopic() {
-                return topic;
-            }
-
-            @Override
-            public String getKey() {
-                return actorRef;
-            }
-        };
     }
 
     @Override

@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static com.github.dfauth.actor.kafka.avro.AddressDespatchable.toAddressDespatchable;
 import static com.github.dfauth.trycatch.TryCatch.tryCatchIgnore;
 
 public class KafkaActorRef<T,R> implements ActorRef<T> {
@@ -59,16 +60,6 @@ public class KafkaActorRef<T,R> implements ActorRef<T> {
     }
 
     public AddressDespatchable toAddress() {
-        return new AddressDespatchable(){
-            @Override
-            public String getTopic() {
-                return optTopic.orElse(ctx.getTopic());
-            }
-
-            @Override
-            public String getKey() {
-                return name;
-            }
-        };
+        return toAddressDespatchable(optTopic.orElse(ctx.getTopic()), name);
     }
 }
