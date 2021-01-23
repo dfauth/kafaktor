@@ -17,20 +17,10 @@ public class KafkaActorRef<T,R> implements ActorRef<T> {
 
     private ParentContext<R> ctx;
     private final String name;
-    private final Optional<String> optTopic;
 
     public KafkaActorRef(ParentContext<R> ctx, String name) {
-        this(ctx, name, Optional.empty());
-    }
-
-    public KafkaActorRef(ParentContext<R> ctx, String name, String topic) {
-        this(ctx, name, Optional.ofNullable(topic));
-    }
-
-    public KafkaActorRef(ParentContext<R> ctx, String name, Optional<String> optTopic) {
         this.ctx = ctx;
         this.name = name;
-        this.optTopic = optTopic;
     }
 
     @Override
@@ -60,6 +50,6 @@ public class KafkaActorRef<T,R> implements ActorRef<T> {
     }
 
     public AddressDespatchable toAddress() {
-        return toAddressDespatchable(optTopic.orElse(ctx.getTopic()), name);
+        return toAddressDespatchable(ctx.getTopic(), name);
     }
 }

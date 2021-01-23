@@ -43,5 +43,7 @@ public interface ParentContext<T> {
 
     void onMessage(Envelope<T> apply);
 
-    String getTopic();
+    default String getTopic() {
+        return getParentContext().map(c -> c.getTopic()).orElseThrow(() -> new IllegalStateException("No parent available to delegate to"));
+    }
 }
