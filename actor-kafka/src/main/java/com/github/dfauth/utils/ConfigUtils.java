@@ -5,7 +5,7 @@ import com.typesafe.config.Config;
 import java.util.Optional;
 import java.util.function.Function;
 
-import static com.github.dfauth.trycatch.Try.tryWithCallable;
+import static com.github.dfauth.trycatch.Try.trySilentlyWithCallable;
 
 
 public class ConfigUtils {
@@ -17,7 +17,7 @@ public class ConfigUtils {
     }
 
     public static <T> Optional<T> getOptionalOfT(Config config, Function<Config, T> f) {
-        return tryWithCallable(() -> f.apply(config)).toOptional();
+        return trySilentlyWithCallable(() -> f.apply(config)).toOptional();
     }
 
     public static Optional<String> getString(Config config, String name) {
