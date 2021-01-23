@@ -8,6 +8,7 @@ import com.github.dfauth.actor.kafka.avro.ActorMessage;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
+import com.github.dfauth.kafaktor.bootstrap.avro.SayHello;
 import com.github.dfauth.kafka.RecoveryStrategies;
 import com.github.dfauth.kafka.Stream;
 import com.google.inject.Guice;
@@ -119,7 +120,7 @@ public class BootstrapTest {
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
                                 bootstrapper.getRecoveryStrategy().invoke(c, __p);
-                                bootstrapper.createActorSystem(__p.topic(), __p.partition(), guardian, publisher);
+                                bootstrapper.createActorSystem(__p.topic(), __p.partition(), "HelloWorlMain.SayHello", guardian, publisher);
                             });
                         });
                         e.onRevocation(_p -> {
@@ -130,8 +131,9 @@ public class BootstrapTest {
                     .build();
             stream.start();
             Thread.sleep(5 * 1000);
-            Greeting greeting = Greeting.newBuilder().setName("Fred").build();
-            stream.send(TOPIC, "greeting", envelopeHandler.envelope(toAddressDespatchable(TOPIC, "greeting"), toAddressDespatchable(TOPIC,"sender"), greeting));
+            SayHello sayHello = SayHello.newBuilder().setName("Fred").build();
+            ActorMessage e = envelopeHandler.envelope(toAddressDespatchable(TOPIC, "/HelloWorldMain.SayHello"), toAddressDespatchable(TOPIC, "sender"), sayHello);
+            stream.send(e.getRecipient().getTopic(), e.getRecipient().getKey(), e);
             Thread.sleep(5 * 1000);
         }));
 

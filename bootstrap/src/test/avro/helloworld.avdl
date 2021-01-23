@@ -1,0 +1,12 @@
+@namespace("com.github.dfauth.kafaktor.bootstrap.avro")
+protocol HelloWorldMain {
+
+  record SayHello {
+    string name;
+  }
+
+  record Greet {
+    string whom;
+  }
+
+}

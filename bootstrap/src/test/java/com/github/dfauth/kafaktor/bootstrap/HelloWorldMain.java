@@ -1,13 +1,14 @@
 package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.*;
+import com.github.dfauth.kafaktor.bootstrap.avro.Greet;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 public class HelloWorldMain extends AbstractBehavior<HelloWorldMain.SayHello> {
 
-    interface SayHello {
+    public interface SayHello {
         String getName();
     }
 
@@ -19,13 +20,12 @@ public class HelloWorldMain extends AbstractBehavior<HelloWorldMain.SayHello> {
 
     private HelloWorldMain(ActorContext<SayHello> context) {
         super(context);
-        greeter = context.spawn(HelloWorld.create(), "greeter");
+        greeter = context.spawn(HelloWorld.create(), "HelloWorld.Greet");
     }
 
     @Override
     public Behavior<SayHello> onMessage(Envelope<SayHello> e) {
-        ActorRef<HelloWorld.Greeted> replyTo =
-                getContext().spawn(HelloWorldBot.create(3), e.payload().getName());
+        getContext().spawn(HelloWorldBot.create(3), e.payload().getName());
         CompletableFuture<HelloWorld.Greet> f = greeter.tell(Greet.newBuilder().setWhom(e.payload().getName()).build());
         f.handle((_payload,_exception) -> {
             Optional.ofNullable(_payload).ifPresent(_e ->

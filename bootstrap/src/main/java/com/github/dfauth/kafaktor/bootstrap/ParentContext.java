@@ -4,7 +4,6 @@ import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.checkerframework.checker.units.qual.K;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -25,7 +24,7 @@ public interface ParentContext<T> {
         return publish(recipient, msg, Optional.ofNullable(sender));
     }
 
-    default <R> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<T,?>> optSender) {
+    default <R,S> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<S,?>> optSender) {
         // either provide a parental context to delagate to
         // or implement publishing
         return getParentContext()
@@ -33,15 +32,13 @@ public interface ParentContext<T> {
                 .orElse(CompletableFuture.failedFuture(new IllegalStateException("No implementation of publish provided")));
     }
 
-    default Optional<ParentContext<T>> getParentContext() {
+    default <R> Optional<ParentContext<R>> getParentContext() {
         return Optional.empty();
     }
 
     boolean stop();
 
-    Optional<ParentContext<T>> findActor(K key, Class<T> expectedType);
-
-    void onMessage(Envelope<T> apply);
+    void processMessage(String address, Envelope<T> apply);
 
     default String getTopic() {
         return getParentContext().map(c -> c.getTopic()).orElseThrow(() -> new IllegalStateException("No parent available to delegate to"));

@@ -5,7 +5,6 @@ import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.checkerframework.checker.units.qual.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,7 +25,7 @@ public class RootActorContext<T> implements ParentContext<T> {
     private Publisher publisher;
     private String topic;
 
-    public RootActorContext(String topic, Behavior.Factory<T> guardianBehaviorFactory, Publisher publisher, String name) {
+    public RootActorContext(String topic, String name, Behavior.Factory<T> guardianBehaviorFactory, Publisher publisher) {
         this.topic = topic;
         this.name = requireNonNull(name);
         this.guardianBehavior = guardianBehaviorFactory.withActorContext(actorContext());
@@ -34,7 +33,12 @@ public class RootActorContext<T> implements ParentContext<T> {
     }
 
     @Override
-    public <R> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<T,?>> optSender) {
+    public Optional<String> getId() {
+        return Optional.ofNullable(name);
+    }
+
+    @Override
+    public <R,S> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<S,?>> optSender) {
         return publisher.publish(recipient, msg, optSender);
     }
 
@@ -72,12 +76,7 @@ public class RootActorContext<T> implements ParentContext<T> {
     }
 
     @Override
-    public Optional<ParentContext<T>> findActor(K key, Class<T> expectedType) {
-        return Optional.empty();
-    }
-
-    @Override
-    public void onMessage(Envelope<T> e) {
+    public void processMessage(String key, Envelope<T> e) {
         guardianBehavior = guardianBehavior.onMessage(e);
     }
 

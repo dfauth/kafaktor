@@ -1,6 +1,7 @@
 package com.github.dfauth.kafaktor.bootstrap;
 
 import com.github.dfauth.actor.*;
+import com.github.dfauth.kafaktor.bootstrap.avro.Greet;
 
 public class HelloWorldBot extends AbstractBehavior<HelloWorld.Greeted> {
 

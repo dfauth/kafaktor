@@ -49,9 +49,8 @@ public interface Bootstrapper<K,V> extends ConsumerRecordProcessor<K,V> {
             this.recordTransformer = recordTransformer;
         }
 
-        public <T> void createActorSystem(String topic, int partition, Behavior.Factory<T> guardianBehavior, Publisher publisher) {
-            name = name(topic, partition);
-            instances.put(name, new RootActorContext<>(topic, guardianBehavior, publisher, name));
+        public <T> void createActorSystem(String topic, int partition, String name, Behavior.Factory<T> guardianBehavior, Publisher publisher) {
+            instances.put(name(topic, partition), new RootActorContext<>(topic, name, guardianBehavior, publisher));
         }
 
         public boolean stop() {
@@ -63,9 +62,8 @@ public interface Bootstrapper<K,V> extends ConsumerRecordProcessor<K,V> {
             logger.info("received consumer record: {}", r);
             Offset result = () -> r.offset() + 1;
             return Optional.ofNullable(instances.get(name(r)))
-//                    .map(ctx -> ctx.findActor(r.key()))
                     .map(ctx -> tryCatch(() -> {
-                            ctx.onMessage(recordTransformer.apply(r));
+                            ctx.processMessage(r.key().toString(), recordTransformer.apply(r));
                             return result;
                         }, ignored -> result)
                     ).orElseGet(() -> {

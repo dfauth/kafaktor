@@ -4,21 +4,24 @@ import com.github.dfauth.actor.ActorContext;
 import com.github.dfauth.actor.ActorRef;
 import com.github.dfauth.actor.Behavior;
 import com.github.dfauth.actor.Envelope;
-import org.checkerframework.checker.units.qual.K;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.Optional;
 
+import static com.github.dfauth.Lists.partition;
+import static com.github.dfauth.partial.Matcher.match;
+import static com.github.dfauth.partial.PartialConsumer._case;
 import static java.util.Objects.requireNonNull;
 
-public class DelegatingActorContext<T,R> implements ParentContext<R> {
+public class DelegatingActorContext<T,R> implements ParentContext<T> {
 
     private static final Logger logger = LoggerFactory.getLogger(DelegatingActorContext.class);
 
     private final ParentContext<R> parent;
     private final String name;
-    private final Behavior<T> behavior;
+    private Behavior<T> behavior;
 
     public DelegatingActorContext(ParentContext<R> parent, String name, Behavior.Factory<T> behaviorFactory) {
         this.parent = requireNonNull(parent);
@@ -33,7 +36,7 @@ public class DelegatingActorContext<T,R> implements ParentContext<R> {
 
     @Override
     public <S> ActorRef<S> spawn(Behavior.Factory<S> behaviorFactory, String name) {
-        DelegatingActorContext<S,R> ctx = new DelegatingActorContext<S,R>(this, name, behaviorFactory);
+        DelegatingActorContext<S, T> ctx = new DelegatingActorContext<>(this, name, behaviorFactory);
         return ctx.getActorRef();
     }
 
@@ -71,13 +74,17 @@ public class DelegatingActorContext<T,R> implements ParentContext<R> {
     }
 
     @Override
-    public Optional<ParentContext<R>> findActor(K key, Class<R> expectedType) {
-        return Optional.empty();
-    }
-
-    @Override
-    public void onMessage(Envelope<R> apply) {
-
+    public void processMessage(String address, Envelope<T> e) {
+        match(partition(Arrays.asList(address.split("/")))).using(
+                _case(t -> t._1().equals(name) && t._2().isEmpty(),
+                        ignored -> {
+                            behavior = behavior.onMessage(e);
+                        }),
+                _case(t -> t._1().equals(name),
+                        ignored -> {
+                            // find actor
+                        }
+        ));
     }
 
     public ActorRef<T> getActorRef() {

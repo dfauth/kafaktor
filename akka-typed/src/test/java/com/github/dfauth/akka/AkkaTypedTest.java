@@ -6,7 +6,7 @@ import com.github.dfauth.actor.kafka.avro.ActorMessage;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
-import com.github.dfauth.kafaktor.bootstrap.Greeting;
+import com.github.dfauth.kafaktor.bootstrap.avro.SayHello;
 import com.github.dfauth.kafka.RecoveryStrategies;
 import com.github.dfauth.kafka.Stream;
 import com.google.inject.Guice;
@@ -91,8 +91,8 @@ public class AkkaTypedTest implements Consumer<ActorMessage> {
                     .build();
             stream.start();
             Thread.sleep(5 * 1000);
-            Greeting greeting = Greeting.newBuilder().setName("Fred").build();
-            stream.send(TOPIC, "key", envelopeHandler.envelope(toAddressDespatchable(TOPIC, "key"), greeting));
+            SayHello sayHello = SayHello.newBuilder().setName("Fred").build();
+            stream.send(TOPIC, "key", envelopeHandler.envelope(toAddressDespatchable(TOPIC, "key"), sayHello));
             Thread.sleep(5 * 1000);
         }));
 

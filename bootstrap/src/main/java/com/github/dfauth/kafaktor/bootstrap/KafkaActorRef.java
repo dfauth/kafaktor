@@ -50,6 +50,6 @@ public class KafkaActorRef<T,R> implements ActorRef<T> {
     }
 
     public AddressDespatchable toAddress() {
-        return toAddressDespatchable(ctx.getTopic(), name);
+        return toAddressDespatchable(ctx.getTopic(), ctx.getId().map(i -> "/"+i).orElse("/"+name));
     }
 }
