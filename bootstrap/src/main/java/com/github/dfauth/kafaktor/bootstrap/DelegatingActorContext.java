@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Arrays;
 import java.util.Optional;
 
-import static com.github.dfauth.Lists.partition;
+import static com.github.dfauth.Lists.segment;
+import static com.github.dfauth.partial.Extractable._case;
 import static com.github.dfauth.partial.Matcher.match;
-import static com.github.dfauth.partial.PartialConsumer._case;
 import static java.util.Objects.requireNonNull;
 
 public class DelegatingActorContext<T,R> implements ParentContext<T> {
@@ -75,16 +75,20 @@ public class DelegatingActorContext<T,R> implements ParentContext<T> {
 
     @Override
     public void processMessage(String address, Envelope<T> e) {
-        match(partition(Arrays.asList(address.split("/")))).using(
-                _case(t -> t._1().equals(name) && t._2().isEmpty(),
-                        ignored -> {
-                            behavior = behavior.onMessage(e);
-                        }),
-                _case(t -> t._1().equals(name),
-                        ignored -> {
-                            // find actor
-                        }
-        ));
+        match(segment(Arrays.asList(address.split("/")))).using(
+                _case((h, t) -> h.equals(name) && t.isEmpty(),
+                        (h, t) ->
+                            behavior = behavior.onMessage(e)
+                        )
+//                _case(t -> t._1().equals(name) && t._2().isEmpty(),
+//                        ignored -> {
+//                            behavior = behavior.onMessage(e);
+//                        }),
+//                _case(t -> t._1().equals(name),
+//                        ignored -> {
+//                            // find actor
+//                        }
+        );
     }
 
     public ActorRef<T> getActorRef() {
