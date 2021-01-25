@@ -77,9 +77,9 @@ public class DelegatingActorContext<T,R> implements ParentContext<T> {
     public void processMessage(String address, Envelope<T> e) {
         match(segment(Arrays.asList(address.split("/")))).using(
                 _case((h, t) -> h.equals(name) && t.isEmpty(),
-                        (h, t) ->
-                            behavior = behavior.onMessage(e)
-                        )
+                        (h, t) -> {
+                            behavior = behavior.onMessage(e);
+                        })
 //                _case(t -> t._1().equals(name) && t._2().isEmpty(),
 //                        ignored -> {
 //                            behavior = behavior.onMessage(e);

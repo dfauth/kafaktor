@@ -76,7 +76,7 @@ public class BootstrapTest {
 
             Bootstrapper.CachingBootstrapper<String, ActorMessage> bootstrapper = new Bootstrapper.CachingBootstrapper(
                     RecoveryStrategies.<String, ActorMessage>timeBased().withTimestamp(() -> sod),
-                    envelopeTransformer().andThen(_p -> _p.mapPayload(HelloWorldMain.SayHello.class::cast))
+                    envelopeTransformer()
                     );
 
             Stream<String, ActorMessage> stream0 = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
@@ -120,7 +120,7 @@ public class BootstrapTest {
                             _p.forEach(__p -> {
                                 logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
                                 bootstrapper.getRecoveryStrategy().invoke(c, __p);
-                                bootstrapper.createActorSystem(__p.topic(), __p.partition(), "HelloWorlMain.SayHello", guardian, publisher);
+                                bootstrapper.createActorSystem(__p.topic(), __p.partition(), "HelloWorldMain.SayHello", guardian, publisher);
                             });
                         });
                         e.onRevocation(_p -> {
