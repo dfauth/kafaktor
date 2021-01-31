@@ -9,17 +9,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import static com.github.dfauth.Lists.segment;
-import static com.github.dfauth.partial.Extractable._case;
-import static com.github.dfauth.partial.Extractable._otherwise;
-import static com.github.dfauth.partial.Matcher.match;
+import static com.github.dfauth.kafaktor.bootstrap.ActorKey.headIs;
+import static com.github.dfauth.kafaktor.bootstrap.ActorKey.noTail;
+import static com.github.dfauth.partial.Matcher.matcher;
+import static com.github.dfauth.partial.PartialFunctions._case;
 import static java.util.Objects.requireNonNull;
 
 public class RootActorContext<T> implements ParentContext<T> {
@@ -83,34 +80,22 @@ public class RootActorContext<T> implements ParentContext<T> {
     }
 
     @Override
-    public void processMessage(String address, Envelope<T> e) {
-        List<String> l = Stream.of(address.split("/")).filter(s -> !s.isEmpty()).collect(Collectors.toList());
-        match(segment(l)).using(
-                _case((h, t) -> h.equals(name) && t.isEmpty(),
-                      (h, t) -> {
+    public void processMessage(ActorKey actorKey, Envelope<T> e) {
+        matcher(actorKey).matchDefault(
+                _case(headIs(name).and(noTail),
+                      key -> {
                         guardianBehavior = guardianBehavior.onMessage(e);
-                      }),
-                _case((h, t) -> h.equals(name),
-                      (h, t) -> {
-                        descend(t);
-                      }),
-                _otherwise(
-                      (h, t) -> {
-                          logger.error("unable to match actor address {}, {}",h,t);
                       })
+                ._case(headIs(name),
+                      key -> {
+                        key.tail().flatMap(ak -> descend(ak)).ifPresent(dac -> ((DelegatingActorContext)dac).processMessage(actorKey.tail().get(), e));
+                      })
+                ._otherwise(() -> logger.error("unable to match actor key {}",actorKey))
         );
     }
 
-    private Optional<ActorRef<T>> descend(List<String> l) {
-        return match(segment(l)).using(
-                _case((h, t) -> children.keySet().contains(h) && t.isEmpty(),
-                        (h, t) ->
-                            (ActorRef<T>) children.get(h).getActorRef()
-                        ),
-                _case((String h, List<String> t) -> children.keySet().contains(h),
-                      (String h, List<String> t) -> descend(t).orElseThrow()
-                )
-        );
+    private Optional<DelegatingActorContext<?, T>> descend(ActorKey actorKey) {
+        return Optional.ofNullable(children.get(actorKey.head()));
     }
 
     @Override

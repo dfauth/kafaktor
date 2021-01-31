@@ -38,7 +38,7 @@ public interface ParentContext<T> {
 
     boolean stop();
 
-    void processMessage(String address, Envelope<T> apply);
+    void processMessage(ActorKey actorKey, Envelope<T> apply);
 
     default String getTopic() {
         return getParentContext().map(c -> c.getTopic()).orElseThrow(() -> new IllegalStateException("No parent available to delegate to"));

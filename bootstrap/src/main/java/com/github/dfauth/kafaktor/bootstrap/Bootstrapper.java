@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import static com.github.dfauth.kafaktor.bootstrap.ActorKey.toActorKey;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
 public interface Bootstrapper<K,V> extends ConsumerRecordProcessor<K,V> {
@@ -63,7 +64,7 @@ public interface Bootstrapper<K,V> extends ConsumerRecordProcessor<K,V> {
             Offset result = () -> r.offset() + 1;
             return Optional.ofNullable(instances.get(name(r)))
                     .map(ctx -> tryCatch(() -> {
-                            ctx.processMessage(r.key().toString(), recordTransformer.apply(r));
+                            ctx.processMessage(toActorKey((String) r.key()), recordTransformer.apply(r));
                             return result;
                         }, ignored -> result)
                     ).orElseGet(() -> {

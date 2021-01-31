@@ -7,12 +7,14 @@ import com.github.dfauth.actor.Envelope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
-import static com.github.dfauth.Lists.segment;
-import static com.github.dfauth.partial.Extractable._case;
-import static com.github.dfauth.partial.Matcher.match;
+import static com.github.dfauth.kafaktor.bootstrap.ActorKey.headIs;
+import static com.github.dfauth.kafaktor.bootstrap.ActorKey.noTail;
+import static com.github.dfauth.partial.Matcher.matcher;
+import static com.github.dfauth.partial.PartialFunctions._case;
 import static java.util.Objects.requireNonNull;
 
 public class DelegatingActorContext<T,R> implements ParentContext<T> {
@@ -22,6 +24,7 @@ public class DelegatingActorContext<T,R> implements ParentContext<T> {
     private final ParentContext<R> parent;
     private final String name;
     private Behavior<T> behavior;
+    private Map<String, DelegatingActorContext<?,T>> children = new HashMap<>();
 
     public DelegatingActorContext(ParentContext<R> parent, String name, Behavior.Factory<T> behaviorFactory) {
         this.parent = requireNonNull(parent);
@@ -74,21 +77,30 @@ public class DelegatingActorContext<T,R> implements ParentContext<T> {
     }
 
     @Override
-    public void processMessage(String address, Envelope<T> e) {
-        match(segment(Arrays.asList(address.split("/")))).using(
-                _case((h, t) -> h.equals(name) && t.isEmpty(),
-                        (h, t) -> {
+    public void processMessage(ActorKey actorKey, Envelope<T> e) {
+        matcher(actorKey).matchDefault(
+                _case(headIs(name).and(noTail),
+                        key -> {
                             behavior = behavior.onMessage(e);
                         })
-//                _case(t -> t._1().equals(name) && t._2().isEmpty(),
-//                        ignored -> {
-//                            behavior = behavior.onMessage(e);
-//                        }),
-//                _case(t -> t._1().equals(name),
-//                        ignored -> {
-//                            // find actor
-//                        }
+                ._case(headIs(name),
+                        key -> {
+                            descend(key);
+                        })
+                ._otherwise(() -> logger.error("unable to match actor key {}",actorKey))
         );
+    }
+
+    private Optional<ActorRef<T>> descend(ActorKey actorKey) {
+        return matcher(actorKey).matchFirstOf(
+                _case(headIs(name).and(noTail),
+                        n -> (ActorRef<T>) children.get(n.head()).getActorRef()
+                )
+                ._case(headIs(name),
+                        n -> {
+                            return n.tail().flatMap(ak -> descend(ak)).orElseThrow();
+                        }
+                ));
     }
 
     public ActorRef<T> getActorRef() {

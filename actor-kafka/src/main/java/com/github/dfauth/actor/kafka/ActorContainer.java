@@ -1,11 +1,12 @@
 package com.github.dfauth.actor.kafka;
 
 import com.github.dfauth.actor.Behavior;
+import com.github.dfauth.actor.EnvelopeConsumer;
 import com.github.dfauth.actor.Named;
 
-public interface ActorContainer<K,V,T> extends Named.BehaviorFactory<T, ConsumerRecordProcessor<K,V>> {
+public interface ActorContainer<T> extends Named.BehaviorFactory<T, EnvelopeConsumer<T>> {
 
-    default ConsumerRecordProcessor<K, V> create(String name, Behavior.Factory<T> factory) {
+    default EnvelopeConsumer<T> create(String name, Behavior.Factory<T> factory) {
         return withName(name).withBehaviorFactory(factory);
     }
 
