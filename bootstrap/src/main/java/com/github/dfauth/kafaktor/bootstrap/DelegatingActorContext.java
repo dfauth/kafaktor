@@ -78,7 +78,7 @@ public class DelegatingActorContext<T,R> implements ParentContext<T> {
 
     @Override
     public void processMessage(ActorKey actorKey, Envelope<T> e) {
-        matcher(actorKey).matchDefault(
+        matcher(actorKey).match(
                 _case(headIs(name).and(noTail),
                         key -> {
                             behavior = behavior.onMessage(e);
@@ -92,7 +92,7 @@ public class DelegatingActorContext<T,R> implements ParentContext<T> {
     }
 
     private Optional<ActorRef<T>> descend(ActorKey actorKey) {
-        return matcher(actorKey).matchFirstOf(
+        return matcher(actorKey).matchOpt(
                 _case(headIs(name).and(noTail),
                         n -> (ActorRef<T>) children.get(n.head()).getActorRef()
                 )

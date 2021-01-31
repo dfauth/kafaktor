@@ -81,7 +81,7 @@ public class RootActorContext<T> implements ParentContext<T> {
 
     @Override
     public void processMessage(ActorKey actorKey, Envelope<T> e) {
-        matcher(actorKey).matchDefault(
+        matcher(actorKey).match(
                 _case(headIs(name).and(noTail),
                       key -> {
                         guardianBehavior = guardianBehavior.onMessage(e);
