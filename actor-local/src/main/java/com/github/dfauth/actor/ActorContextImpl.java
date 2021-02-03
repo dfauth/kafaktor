@@ -1,6 +1,5 @@
 package com.github.dfauth.actor;
 
-import com.github.dfauth.partial.VoidFunction;
 import com.github.dfauth.trycatch.TryCatch;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +9,7 @@ import java.util.concurrent.*;
 
 import static com.github.dfauth.actor.Validations.anonymousId;
 import static com.github.dfauth.actor.Validations.validateId;
+import static com.github.dfauth.partial.Unit.Function.peek;
 
 public class  ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext<T> {
 
@@ -72,7 +72,7 @@ public class  ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContex
         executor.execute(() ->
             Optional.ofNullable(q.poll())
                     .map(
-                            VoidFunction.peek(
+                            peek(
                                     t -> TryCatch.tryCatchIgnore(() ->
                                             this.behaviour = this.behaviour.onMessage(t))
                             )
