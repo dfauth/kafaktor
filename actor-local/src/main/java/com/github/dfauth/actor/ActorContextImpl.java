@@ -9,7 +9,7 @@ import java.util.concurrent.*;
 
 import static com.github.dfauth.actor.Validations.anonymousId;
 import static com.github.dfauth.actor.Validations.validateId;
-import static com.github.dfauth.partial.Unit.Function.peek;
+import static com.github.dfauth.function.Function2.peek;
 
 public class  ActorContextImpl<T> implements ActorImpl<T>, Runnable, ActorContext<T> {
 

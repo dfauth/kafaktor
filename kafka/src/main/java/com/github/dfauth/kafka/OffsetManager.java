@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import static com.github.dfauth.partial.Unit.Function.peek;
+import static com.github.dfauth.function.Function2.peek;
 
 public interface OffsetManager<K,V> extends KafkaConsumerAware<K,V,TopicPartitionAware.Consumer> {
 
