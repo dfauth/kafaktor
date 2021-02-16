@@ -9,8 +9,6 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
-import static java.util.function.Function.identity;
-
 public class FunctionUtils {
 
     public static <K,V> Map<K,V> merge(Map<K,V> m, K k, V v) {
@@ -69,11 +67,11 @@ public class FunctionUtils {
     }
 
     public static <K,V> BiFunction<Map<K,V>, Map.Entry<K,V>, Map<K,V>> accumulateMap() {
-        return accumulateMap(identity(), identity());
+        return accumulateMap(e -> e.getKey(), e -> e.getValue());
     }
 
-    public static <K,V,J,U> BiFunction<Map<J,U>, Map.Entry<K,V>, Map<J,U>> accumulateMap(Function<K,J> keyMapper, Function<V,U> valueMapper) {
-        return (acc, e) -> merge(acc, keyMapper.apply(e.getKey()), valueMapper.apply(e.getValue()));
+    public static <K,V,J,U> BiFunction<Map<J,U>, Map.Entry<K,V>, Map<J,U>> accumulateMap(Function<Map.Entry<K,V>,J> keyMapper, Function<Map.Entry<K,V>,U> valueMapper) {
+        return (acc, e) -> merge(acc, keyMapper.apply(e), valueMapper.apply(e));
     }
 
     public static <T> BinaryOperator<List<T>> combineList() {

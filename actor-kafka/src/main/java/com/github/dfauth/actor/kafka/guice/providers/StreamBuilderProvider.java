@@ -11,7 +11,6 @@ import java.util.Map;
 
 import static com.github.dfauth.utils.FunctionUtils.accumulateMap;
 import static com.github.dfauth.utils.FunctionUtils.combineMap;
-import static java.util.function.UnaryOperator.identity;
 
 
 public class StreamBuilderProvider implements Provider<Stream.Builder<String, byte[]>> {
@@ -22,7 +21,7 @@ public class StreamBuilderProvider implements Provider<Stream.Builder<String, by
     public StreamBuilderProvider(Config config) {
         streamBuilder = Stream.Builder.stringKeyBuilder(Serdes.ByteArray());
         Map<String, Object> props = config.getConfig("kafka").entrySet().stream().reduce(new HashMap<>(),
-                accumulateMap(identity(), v -> v),
+                accumulateMap(e -> e.getKey(), e -> e.getValue()),
                 combineMap());
         streamBuilder.withProperties(props);
     }
