@@ -44,6 +44,9 @@ public interface ActorMessageDespatchable {
     }
 
     interface Builder<E extends Builder<E>> {
+        default E blah() {
+            return (E) this;
+        }
     }
 
 }

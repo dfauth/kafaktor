@@ -102,6 +102,7 @@ public interface EnvelopeHandler<T> {
                 .setMetadata(metadata)
                 .setPayloadSchema(record.getSchema().getFullName())
                 .setPayload(ByteBuffer.wrap(serializer.serialize(record.getSchema().getFullName(), record)))
+                .blah()
                 .build();
     }
 

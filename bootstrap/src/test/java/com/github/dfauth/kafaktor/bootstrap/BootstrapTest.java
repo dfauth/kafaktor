@@ -10,13 +10,17 @@ import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
 import com.github.dfauth.kafaktor.bootstrap.avro.SayHello;
 import com.github.dfauth.kafka.RecoveryStrategies;
-import com.github.dfauth.kafka.Stream;
+import com.github.dfauth.kafka.KafkaSink;
+import com.github.dfauth.kafka.KafkaSource;
+import com.github.dfauth.reactivestreams.ConsumingSubscriber;
+import com.github.dfauth.reactivestreams.OneTimePublisher;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import com.typesafe.config.Config;
 import org.apache.avro.specific.SpecificRecordBase;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
@@ -79,20 +83,20 @@ public class BootstrapTest {
                     envelopeTransformer()
                     );
 
-            Stream<String, ActorMessage> stream0 = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
-                    .withProperties(p)
-                    .withTopic(TOPIC)
-                    .withGroupId(this.getClass().getCanonicalName())
-                    .build();
-
             Publisher publisher =  new Publisher() {
+
+                KafkaSink.Builder<String, ActorMessage> builder = KafkaSink.Builder.builder(envelopeHandler.envelopeSerde())
+                        .withConfig(p)
+                        .withTopic(TOPIC)
+                        .withPublisher(this).build().start();
+
                 @Override
                 public <R, T> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<T,?>> optSender) {
                     return tryCatch(() -> {
                         ActorMessage payload = optSender
                                 .map(s -> envelopeHandler.envelope(recipient.toAddress(), s.toAddress(), (SpecificRecordBase) msg))
                                 .orElse(envelopeHandler.envelope(recipient.toAddress(), (SpecificRecordBase) msg));
-                        CompletableFuture<RecordMetadata> f = stream0.send(payload.getRecipient().getTopic(), payload.getRecipient().getKey(), payload);
+                        CompletableFuture<RecordMetadata> f = source.send(payload.getRecipient().getTopic(), payload.getRecipient().getKey(), payload);
                         f.handle(tryWith()).thenApply(_try ->
                             _try.recover(e -> {
                                 logger.error(e.getMessage(), e);
@@ -105,8 +109,9 @@ public class BootstrapTest {
                 }
             };
 
-            Stream<String, ActorMessage> stream = Stream.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
-                    .withProperties(p)
+            //                    .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
+            KafkaSource.Builder<String, ActorMessage> builder1 = KafkaSource.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
+                    .withConfig(p)
                     .withTopic(TOPIC)
                     .withGroupId(this.getClass().getCanonicalName())
 //                    .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
@@ -114,26 +119,29 @@ public class BootstrapTest {
                     .withExecutor(executor)
                     .withPartitionAssignmentEventConsumer(c -> e -> {
                         e.onAssigment(_p -> {
-                            logger.info("partitions assigned: "+_p);
+                            logger.info("partitions assigned: " + _p);
                             Map<TopicPartition, Long> bo = c.beginningOffsets(_p);
                             Map<TopicPartition, Long> eo = c.endOffsets(_p);
                             _p.forEach(__p -> {
-                                logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p));
+                                logger.info("partition: {} offsets beginning: {} current: {} end: {}", __p, bo.get(__p), c.position(__p), eo.get(__p));
                                 bootstrapper.getRecoveryStrategy().invoke(c, __p);
                                 bootstrapper.createActorSystem(__p.topic(), __p.partition(), "HelloWorldMain.SayHello", guardian, publisher);
                             });
                         });
                         e.onRevocation(_p -> {
-                            logger.info("partitions revoked: "+_p);
+                            logger.info("partitions revoked: " + _p);
                             _p.forEach(__p -> Bootstrapper.CachingBootstrapper.lookup(name(__p)).ifPresent(b -> b.stop()));
                         });
-                    })
-                    .build();
-            stream.start();
+                    });
+            KafkaSource source1 = builder1.build();
+            source1.start();
             Thread.sleep(5 * 1000);
+
             SayHello sayHello = SayHello.newBuilder().setName("Fred").build();
             ActorMessage e = envelopeHandler.envelope(toAddressDespatchable(TOPIC, "/HelloWorldMain.SayHello"), toAddressDespatchable(TOPIC, "sender"), sayHello);
-            stream.send(e.getRecipient().getTopic(), e.getRecipient().getKey(), e);
+            KafkaSink sink = builder1.withPublisher(OneTimePublisher.of(new ProducerRecord<>(e.getRecipient().getTopic(), e.getRecipient().getKey(), e))).build();
+            sink.subscribe(ConsumingSubscriber.of(m -> logger.info("metadata: {}",m)));
+
             Thread.sleep(5 * 1000);
         }));
 

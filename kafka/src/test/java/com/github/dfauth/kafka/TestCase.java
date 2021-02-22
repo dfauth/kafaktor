@@ -1,13 +1,13 @@
 package com.github.dfauth.kafka;
 
-import com.github.dfauth.trycatch.Try;
+import com.github.dfauth.reactivestreams.OneTimePublisher;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -25,34 +25,46 @@ public class TestCase {
     private static final String MESSAGE = "Hello World!";
 
     @Test
-    public void testIt() throws InterruptedException, ExecutionException, TimeoutException {
+    public void testIt() {
 
         CompletableFuture<String> f = new CompletableFuture<>();
-        CompletableFuture<String> tryF = embeddedKafkaWithTopic(TOPIC).runTestFuture(p -> {
-            p.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
-            Stream stream = Stream.Builder.builder()
-                    .withProperties(p)
+        String result = embeddedKafkaWithTopic(TOPIC).runTest(p -> {
+            Map<String, Object> props = new HashMap<>(p);
+            props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
+            KafkaSource.Builder<String, String> builder = KafkaSource.Builder.builder()
+                    .withConfig(props)
                     .withTopic(TOPIC)
+                    .withPartitionAssignmentEventConsumer(c -> e ->
+                            logger.info("partition assignment event: {}", e))
                     .withMessageConsumer(m ->
-                            f.complete(m))
-                    .withPartitionAssignmentEventConsumer(c -> e -> e.onAssigment(_p -> {
-                        Map<TopicPartition, Long> bo = c.beginningOffsets(_p);
-                        Map<TopicPartition, Long> eo = c.endOffsets(_p);
-                        _p.forEach(__p -> logger.info("partition: {} offsets beginning: {} current: {} end: {}",__p,bo.get(__p), c.position(__p),eo.get(__p)));
-                    }))
+                            f.complete(m));
+            KafkaSource source = builder.build();
+            KafkaSink<String,String> sink = builder
+                    .withPublisher(OneTimePublisher.of(new ProducerRecord<>(TOPIC, null, MESSAGE)))
+                    .withTopic(TOPIC)
                     .build();
-            stream.start();
+//            sink.subscribe(ConsumingSubscriber.of(i ->
+//                    logger.info("published message {} at: {}", MESSAGE, i)));
+            source.start();
+            sink.start();
+            sink.send(MESSAGE).thenAccept(i ->
+                    logger.info("published message {} at: {}", MESSAGE, i)
+            );
+            try {
+                return f.get(100, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                logger.error(e.getMessage(), e);
+                throw new RuntimeException(e);
+            } catch (ExecutionException e) {
+                logger.error(e.getMessage(), e);
+                throw new RuntimeException(e);
+            } catch (TimeoutException e) {
+                logger.error(e.getMessage(), e);
+                throw new RuntimeException(e);
+            }
 
-            CompletableFuture<RecordMetadata> _f = stream.send(TOPIC, MESSAGE);
-            _f.thenAccept(r -> logger.info("metadata: {}", r));
-            Try.tryWith(() -> _f.get(3, TimeUnit.SECONDS)).recover(_t -> {
-                f.completeExceptionally(_t);
-            });
-            return f;
         });
-
-        String result = tryF.get(10, TimeUnit.SECONDS);
-        logger.info("result: {}",result);
         assertEquals(MESSAGE, result);
     }
+
 }

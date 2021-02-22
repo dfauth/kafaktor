@@ -5,7 +5,7 @@ import com.github.dfauth.actor.kafka.avro.ActorMessage;
 import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.ProdModule;
-import com.github.dfauth.kafka.Stream;
+import com.github.dfauth.kafka.KafkaSource;
 import com.github.dfauth.trycatch.Try;
 import com.github.dfauth.utils.MyConfig;
 import com.google.inject.Guice;
@@ -25,7 +25,7 @@ public class KafkaActorDelegate<T extends SpecificRecordBase> implements ActorDe
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaActorDelegate.class);
 
-    @Inject private Stream.Builder<String, byte[]> streamBuilder;
+    @Inject private KafkaSource.Builder<String, byte[]> sourceBuilder;
     @Inject private EnvelopeHandler<SpecificRecordBase> envelopeHandler;
     @Inject private Config config;
 
@@ -65,13 +65,14 @@ public class KafkaActorDelegate<T extends SpecificRecordBase> implements ActorDe
                 return r.offset()+1;
             }).toOptional().orElse(r.offset()+1);
 
-            Stream<String, byte[]> stream = streamBuilder.build(c ->
-                    c.withTopic(myConfig.getTopic())
+            KafkaSource source = sourceBuilder
+                    .withTopic(myConfig.getTopic())
                             .withRecordProcessor(c1)
                             .withGroupId("fred")
                     .withKeyFilter(k -> k.equals("fred"))
-            );
-            stream.start();
+                    .build();
+
+            source.start();
             actor = com.github.dfauth.actor.ActorContextImpl.<T>of(f);
             return actor.ref();
         } catch(RuntimeException e) {

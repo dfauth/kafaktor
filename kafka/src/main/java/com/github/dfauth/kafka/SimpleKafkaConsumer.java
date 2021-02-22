@@ -1,11 +1,7 @@
 package com.github.dfauth.kafka;
 
-import com.github.dfauth.Lazy;
 import com.github.dfauth.trycatch.TryCatch;
 import org.apache.kafka.clients.consumer.*;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.Serde;
@@ -17,18 +13,16 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
 
-class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, Stream<K,V> {
+class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, KafkaSource {
 
     private final Logger logger = LoggerFactory.getLogger(SimpleKafkaConsumer.class);
 
     private final KafkaConsumer<K,V> consumer;
-    private final Lazy<KafkaProducer<K,V>> lazyProducer;
     private final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private final Collection<String> topics;
@@ -50,7 +44,6 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
         props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
         props.computeIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, ignored -> "earliest");
         consumer = new KafkaConsumer<>(props, keySerde.deserializer(), valueSerde.deserializer());
-        lazyProducer = Lazy.of(() -> new KafkaProducer<>(props, keySerde.serializer(), valueSerde.serializer()));
     }
 
     public void start() {
@@ -63,11 +56,16 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
         try {
             while (!stopped.get()) {
                 ConsumerRecords<K, V> records = consumer.poll(pollingDuration);
-                records.partitions().stream().forEach(tp -> {
-                    records.records(tp).stream().filter(predicate).map(recordProcessingFunction).forEach(o -> {
-                        offsetsToCommit.compute(tp, (k,v) -> v == null ? new OffsetAndMetadata(o) : new OffsetAndMetadata(o, v.leaderEpoch(), v.metadata()));
-                    });
-                });
+                records.partitions().stream().forEach(tp ->
+                    records.records(tp).stream()
+                            .filter(predicate)
+                            .map(recordProcessingFunction)
+                            .forEach(o ->
+                        offsetsToCommit.compute(tp, (k,v) -> v == null ?
+                                new OffsetAndMetadata(o) :
+                                new OffsetAndMetadata(o, v.leaderEpoch(), v.metadata()))
+                    )
+                );
                 commitOffsets();
             }
         } catch (WakeupException we) {
@@ -132,22 +130,6 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, S
     public void stop() {
         stopped.set(true);
         consumer.wakeup();
-    }
-
-    @Override
-    public CompletableFuture<RecordMetadata> send(String topic, K k, V v) {
-        CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
-        lazyProducer.get().send(new ProducerRecord<>(topic,k,v), (m, e) -> {
-            if(m != null && e == null) {
-                f.complete(m);
-            } else if(m == null && e != null) {
-                f.completeExceptionally(e);
-            } else {
-                // should not happen
-                logger.warn("producer received unhandled callback combination metadata: {}, exception: {}",m,e);
-            }
-        });
-        return f;
     }
 
 }

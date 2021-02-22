@@ -21,7 +21,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 
-class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, Stream<K,V> {
+class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, KafkaSource {
 
     private final Logger logger = LoggerFactory.getLogger(MultithreadedKafkaConsumer.class);
     
@@ -176,7 +176,6 @@ class MultithreadedKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceList
         consumer.wakeup();
     }
 
-    @Override
     public CompletableFuture<RecordMetadata> send(String topic, K k, V v) {
         CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
         lazyProducer.get().send(new ProducerRecord<>(topic,k,v), (m, e) -> {

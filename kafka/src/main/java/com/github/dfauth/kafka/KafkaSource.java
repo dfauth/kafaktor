@@ -2,17 +2,12 @@ package com.github.dfauth.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -21,17 +16,26 @@ import java.util.function.Predicate;
 
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
-public interface Stream<K,V> {
+public interface KafkaSource {
+
     void start();
     void stop();
-    CompletableFuture<RecordMetadata> send(String topic, K k, V v);
-    default CompletableFuture<RecordMetadata> send(String topic, V v) {
-        return send(topic, null, v);
-    }
 
-    class Builder<K,V> {
+    class Builder<K,V> extends KafkaStream.Builder<KafkaSource.Builder<K,V>,K,V> {
 
-        private static final Logger logger = LoggerFactory.getLogger(Builder.class);
+        protected Collection<String> topics;
+
+        public static Builder<String,String> builder() {
+            return builder(Serdes.String(), Serdes.String());
+        }
+
+        public static <V> Builder<String,V> stringKeyBuilder(Serde<V> valueSerde) {
+            return builder(Serdes.String(), valueSerde);
+        }
+
+        public static <K,V> Builder<K,V> builder(Serde<K> keySerde, Serde<V> valueSerde) {
+            return new Builder<>(keySerde, valueSerde);
+        }
 
         private Duration maxOffsetCommitInterval = Duration.ofMillis(5000);
         private Duration pollingDuration = Duration.ofMillis(100);
@@ -40,28 +44,20 @@ public interface Stream<K,V> {
             return record.offset() + 1;
         };
         private ExecutorService executor;
-        private Collection<String> topics;
-        private Map<String, Object> config;
-        private Serde<K> keySerde;
-        private Serde<V> valueSerde;
         private PartitionAssignmentEventConsumer<K,V> topicPartitionConsumer = c -> tp -> {};
         private Predicate<ConsumerRecord<K, V>> predicate = r -> true;
 
-        public static <V> Builder<String,V> stringKeyBuilder(Serde<V> valueSerde) {
-            return builder(Serdes.String(), valueSerde);
-        }
-
-        public static Builder<String,String> builder() {
-            return builder(Serdes.String(), Serdes.String());
-        }
-
-        public static <K,V> Builder<K,V> builder(Serde<K> keySerde, Serde<V> valueSerde) {
-            return new Builder<>(keySerde, valueSerde);
-        }
-
         public Builder(Serde<K> keySerde, Serde<V> valueSerde) {
-            this.keySerde = keySerde;
-            this.valueSerde = valueSerde;
+            super(keySerde, valueSerde);
+        }
+
+        public Builder<K, V> withTopic(String topic) {
+            return withTopics(Collections.singletonList(topic));
+        }
+
+        public Builder<K, V> withTopics(Collection<String> topics) {
+            this.topics = topics;
+            return this;
         }
 
         public Builder<K, V> withPartitionAssignmentEventConsumer(PartitionAssignmentEventConsumer<K,V> c) {
@@ -89,22 +85,8 @@ public interface Stream<K,V> {
             return this;
         }
 
-        public Builder<K, V> withProperties(Map<String, Object> config) {
-            this.config = config;
-            return this;
-        }
-
         public Builder<K, V> withExecutor(ExecutorService executor) {
             this.executor = executor;
-            return this;
-        }
-
-        public Builder<K, V> withTopic(String topic) {
-            return withTopics(Collections.singletonList(topic));
-        }
-
-        public Builder<K, V> withTopics(Collection<String> topics) {
-            this.topics = topics;
             return this;
         }
 
@@ -143,31 +125,10 @@ public interface Stream<K,V> {
             return this;
         }
 
-        public Stream<K,V> build() {
+        public KafkaSource build() {
             return executor != null ?
                     new MultithreadedKafkaConsumer<>(config, topics, keySerde, valueSerde, executor, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
                     new SimpleKafkaConsumer<>(config, topics, keySerde, valueSerde, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
-        }
-
-        public <T,R> Stream<T, R> build(Function<Builder<K, V>, Builder<T, R>> f) {
-            return f.apply(clone(keySerde, valueSerde)).build();
-        }
-
-        public <T> Builder<T, V> withKeySerde(Serde<T> keySerde) {
-            return clone(keySerde, valueSerde);
-        }
-
-        public <R> Builder<K, R> withValueSerde(Serde<R> valueSerde) {
-            return clone(keySerde, valueSerde);
-        }
-
-        private <T,R> Stream.Builder<T, R> clone(Serde<T> keySerde, Serde<R> valueSerde) {
-            return new Builder<>(keySerde, valueSerde)
-                    .withOffsetCommitInterval(maxOffsetCommitInterval)
-                    .withPollingDuration(pollingDuration)
-                    .withProperties(config)
-                    .withTopics(topics)
-                    .withExecutor(executor);
         }
 
     }

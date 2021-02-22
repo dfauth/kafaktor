@@ -5,7 +5,7 @@ import akka.dispatch.ExecutorServiceConfigurator;
 import akka.dispatch.ExecutorServiceFactory;
 import com.github.dfauth.actor.kafka.avro.ActorMessage;
 import com.github.dfauth.akka.typed.simple.config.KafkaConfig;
-import com.github.dfauth.kafka.Stream;
+import com.github.dfauth.kafka.KafkaStream;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -28,7 +28,7 @@ public class KafkaExecutor extends ExecutorServiceConfigurator implements Functi
         super(config, prerequisites);
         this.kafkaConfig = new KafkaConfig(ConfigFactory.load());
         name = String.format("%s-executor",kafkaConfig.topics().stream().collect(Collectors.joining("-")));
-        Stream<String, ActorMessage> stream = Stream.Builder.stringKeyBuilder(kafkaConfig.envelopeHandler().envelopeSerde())
+        KafkaStream<String, ActorMessage> stream = KafkaStream.Builder.stringKeyBuilder(kafkaConfig.envelopeHandler().envelopeSerde())
                 .withProperties(kafkaConfig.properties())
                 .withTopics(kafkaConfig.topics())
                 .withGroupId(kafkaConfig.groupId())

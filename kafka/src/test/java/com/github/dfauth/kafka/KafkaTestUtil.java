@@ -73,6 +73,7 @@ public class KafkaTestUtil {
             EmbeddedKafkaBroker broker = new EmbeddedKafkaBroker(1, true, partitions, topic);
             broker.afterPropertiesSet();
             Map<String, Object> p = new HashMap(this.config);
+//            p.putAll(Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, java.util.stream.Stream.of(broker.getBrokerAddresses()).map(a -> String.format("0.0.0.0:%d",a.getPort())).collect(Collectors.joining(","))));
             p.putAll(Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, broker.getBrokersAsString()));
             CompletableFuture<T> _f = f.apply(p);
             return _f.handle((r,e) -> {
