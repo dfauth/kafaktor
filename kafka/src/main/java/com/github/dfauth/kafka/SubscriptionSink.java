@@ -3,24 +3,32 @@ package com.github.dfauth.kafka;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
-import java.util.concurrent.Flow;
 
-public class SubscriptionSink<K,V> implements Flow.Processor<ProducerRecord<K, V>,RecordMetadata>, Flow.Subscription {
+public class SubscriptionSink<K,V> implements KafkaSink<K, V>, Subscription {
 
     private static final Logger logger = LoggerFactory.getLogger(SubscriptionSink.class);
     private final KafkaProducer<K, V> producer;
-    private Optional<Flow.Subscriber<? super RecordMetadata>> optSubscriber = Optional.empty();
+    private final String topic;
+    private Optional<Subscriber<? super RecordMetadata>> optSubscriber = Optional.empty();
 
-    public SubscriptionSink(KafkaProducer<K, V> p) {
-        this.producer = p;
+    public SubscriptionSink(String topic, KafkaProducer<K, V> producer) {
+        this.topic = topic;
+        this.producer = producer;
     }
 
     @Override
-    public void onSubscribe(Flow.Subscription subscription) {
+    public String topic() {
+        return topic;
+    }
+
+    @Override
+    public void onSubscribe(Subscription subscription) {
         subscription.request(Integer.MAX_VALUE);
     }
 
@@ -52,7 +60,7 @@ public class SubscriptionSink<K,V> implements Flow.Processor<ProducerRecord<K, V
     }
 
     @Override
-    public void subscribe(Flow.Subscriber<? super RecordMetadata> subscriber) {
+    public void subscribe(Subscriber<? super RecordMetadata> subscriber) {
         optSubscriber = Optional.of(subscriber);
         subscriber.onSubscribe(this);
     }
@@ -78,4 +86,5 @@ public class SubscriptionSink<K,V> implements Flow.Processor<ProducerRecord<K, V
     public void stop() {
 
     }
+
 }

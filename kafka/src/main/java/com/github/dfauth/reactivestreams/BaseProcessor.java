@@ -1,16 +1,19 @@
 package com.github.dfauth.reactivestreams;
 
+import org.reactivestreams.Processor;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
 import java.util.Optional;
-import java.util.concurrent.Flow;
 import java.util.function.Function;
 
-public class BaseProcessor<I,O> extends BaseSubscriber<I> implements Flow.Processor<I,O> {
+public class BaseProcessor<I,O> extends BaseSubscriber<I> implements Processor<I,O> {
 
-    private Optional<Flow.Subscriber<? super O>> optSubscriber = Optional.empty();
+    private Optional<Subscriber<? super O>> optSubscriber = Optional.empty();
 
     private final Function<I,O> f;
 
-    public static <T> Flow.Processor<T,T> identity() {
+    public static <T> Processor<T,T> identity() {
         return new BaseProcessor<>(Function.<T>identity()){};
     }
 
@@ -19,8 +22,8 @@ public class BaseProcessor<I,O> extends BaseSubscriber<I> implements Flow.Proces
     }
 
     @Override
-    public void subscribe(Flow.Subscriber<? super O> subscriber) {
-        Optional<Flow.Subscription> tmp;
+    public void subscribe(Subscriber<? super O> subscriber) {
+        Optional<Subscription> tmp;
         synchronized (this) {
             optSubscriber = Optional.ofNullable(subscriber);
             tmp = optSubscription;
@@ -29,8 +32,8 @@ public class BaseProcessor<I,O> extends BaseSubscriber<I> implements Flow.Proces
     }
 
     @Override
-    public synchronized void onSubscribe(Flow.Subscription subscription) {
-        Optional<Flow.Subscriber<? super O>> tmp;
+    public synchronized void onSubscribe(Subscription subscription) {
+        Optional<Subscriber<? super O>> tmp;
         synchronized (this) {
             super.onSubscribe(subscription);
             tmp = optSubscriber;
@@ -38,7 +41,7 @@ public class BaseProcessor<I,O> extends BaseSubscriber<I> implements Flow.Proces
         tmp.ifPresent(s -> init(s, subscription));
     }
 
-    protected void init(Flow.Subscriber<? super O> subscriber, Flow.Subscription subscription) {
+    protected void init(Subscriber<? super O> subscriber, Subscription subscription) {
         subscriber.onSubscribe(subscription);
     }
 

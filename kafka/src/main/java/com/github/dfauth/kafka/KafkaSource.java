@@ -8,6 +8,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -15,6 +16,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
+import static com.github.dfauth.utils.FunctionUtils.merge;
 
 public interface KafkaSource {
 
@@ -23,7 +25,8 @@ public interface KafkaSource {
 
     class Builder<K,V> extends KafkaStream.Builder<KafkaSource.Builder<K,V>,K,V> {
 
-        protected Collection<String> topics;
+        protected Collection<String> sourceTopics;
+        private Map<String, Object> consumerConfig = Collections.emptyMap();
 
         public static Builder<String,String> builder() {
             return builder(Serdes.String(), Serdes.String());
@@ -51,12 +54,17 @@ public interface KafkaSource {
             super(keySerde, valueSerde);
         }
 
-        public Builder<K, V> withTopic(String topic) {
-            return withTopics(Collections.singletonList(topic));
+        public KafkaSource.Builder<K,V> withConsumerConfig(Map<String, Object> consumerConfig) {
+            this.consumerConfig = consumerConfig;
+            return this;
         }
 
-        public Builder<K, V> withTopics(Collection<String> topics) {
-            this.topics = topics;
+        public Builder<K, V> withSourceTopic(String topic) {
+            return withSourceTopics(Collections.singletonList(topic));
+        }
+
+        public Builder<K, V> withSourceTopics(Collection<String> topics) {
+            this.sourceTopics = topics;
             return this;
         }
 
@@ -127,8 +135,8 @@ public interface KafkaSource {
 
         public KafkaSource build() {
             return executor != null ?
-                    new MultithreadedKafkaConsumer<>(config, topics, keySerde, valueSerde, executor, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
-                    new SimpleKafkaConsumer<>(config, topics, keySerde, valueSerde, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
+                    new MultithreadedKafkaConsumer<>(merge(config, consumerConfig), sourceTopics, keySerde, valueSerde, executor, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
+                    new SimpleKafkaConsumer<>(merge(config, consumerConfig), sourceTopics, keySerde, valueSerde, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
         }
 
     }

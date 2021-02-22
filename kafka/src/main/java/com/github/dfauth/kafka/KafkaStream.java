@@ -1,13 +1,12 @@
 package com.github.dfauth.kafka;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serde;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.Flow;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -30,6 +29,27 @@ public interface KafkaStream {
         public B withConfig(Map<String, Object> config) {
             this.config = config;
             return (B) this;
+        }
+
+        public KafkaSource.Builder<K, V> withSourceTopic(String topic) {
+            return KafkaSource.Builder
+                    .builder(keySerde, valueSerde)
+                    .withSourceTopic(topic)
+                    .withConfig(config);
+        }
+
+        public KafkaSource.Builder<K, V> withSourceTopics(Collection<String> topics) {
+            return KafkaSource.Builder
+                    .builder(keySerde, valueSerde)
+                    .withSourceTopics(topics)
+                    .withConfig(config);
+        }
+
+        public KafkaSink.Builder<K, V> withSinkTopic(String topic) {
+            return KafkaSink.Builder
+                    .builder(keySerde, valueSerde)
+                    .withSinkTopic(topic)
+                    .withConfig(config);
         }
 
         public KafkaSource.Builder<K,V> withMessageConsumer(Consumer<V> consumer) {
@@ -56,11 +76,16 @@ public interface KafkaStream {
                     .withConfig(config);
         }
 
-        public KafkaSink.Builder<K,V> withPublisher(Flow.Publisher<ProducerRecord<K,V>> p) {
-            return KafkaSink.Builder.builder(keySerde, valueSerde)
-                    .withPublisher(p)
-                    .withConfig(config);
+        public KafkaSource.Builder<K,V> withConsumerConfig(Map<String, Object> consumerConfig) {
+            return KafkaSource.Builder.builder(keySerde, valueSerde)
+                    .withConfig(config)
+                    .withConsumerConfig(consumerConfig);
         }
 
+        public KafkaSink.Builder<K,V> withProducerConfig(Map<String, Object> producerConfig) {
+            return KafkaSink.Builder.builder(keySerde, valueSerde)
+                    .withConfig(config)
+                    .withProducerConfig(producerConfig);
+        }
     }
 }

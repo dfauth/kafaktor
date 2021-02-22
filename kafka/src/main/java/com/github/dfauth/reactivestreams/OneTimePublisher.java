@@ -1,10 +1,10 @@
 package com.github.dfauth.reactivestreams;
 
 import com.github.dfauth.function.Function2;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
-import java.util.concurrent.Flow;
-
-public class OneTimePublisher<O> extends BasePublisher<O> implements Flow.Subscription {
+public class OneTimePublisher<O> extends BasePublisher<O> implements Subscription {
 
     private O element;
 
@@ -17,7 +17,7 @@ public class OneTimePublisher<O> extends BasePublisher<O> implements Flow.Subscr
     }
 
     @Override
-    public void subscribe(Flow.Subscriber<? super O> subscriber) {
+    public void subscribe(Subscriber<? super O> subscriber) {
         super.subscribe(subscriber);
         init(subscriber, this);
     }
@@ -25,7 +25,7 @@ public class OneTimePublisher<O> extends BasePublisher<O> implements Flow.Subscr
     @Override
     public void request(long n) {
         new Thread(null, () -> {
-            optSubscriber.map(Function2.<Flow.Subscriber>peek(s ->
+            optSubscriber.map(Function2.<Subscriber>peek(s ->
                     s.onNext(element)))
                     .orElseThrow(() -> new IllegalStateException("No subscriber"));
         }, "onetimePublisherThread").start();

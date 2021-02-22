@@ -5,12 +5,14 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
+import org.reactivestreams.Processor;
 
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Flow;
+import java.util.Collections;
+import java.util.Map;
 
-public interface KafkaSink<K,V> {
+import static com.github.dfauth.utils.FunctionUtils.merge;
+
+public interface KafkaSink<K,V> extends Processor<ProducerRecord<K,V>,RecordMetadata> {
 
     void start();
 
@@ -18,24 +20,19 @@ public interface KafkaSink<K,V> {
 
     String topic();
 
-    default CompletableFuture<RecordMetadata> send(V v) {
-        return send(topic(), null, v);
+    default ProducerRecord<K,V> toProducerRecord(V v) {
+        return toProducerRecord(null, v);
     }
 
-    default CompletableFuture<RecordMetadata> send(K k, V v) {
-        return send(topic(), k, v);
+    default ProducerRecord<K,V> toProducerRecord(K k, V v) {
+        return new ProducerRecord<>(topic(), k, v);
     }
-
-    default CompletableFuture<RecordMetadata> send(String topic, K k, V v) {
-        return send(new ProducerRecord<>(topic, k, v));
-    }
-    CompletableFuture<RecordMetadata> send(ProducerRecord<K,V> record);
 
     class Builder<K,V> extends KafkaStream.Builder<KafkaSink.Builder<K,V>,K,V> {
 
-        protected String topic;
+        protected String sinkTopic;
         private KafkaProducer<K, V> p;
-        private Flow.Publisher<ProducerRecord<K, V>> publisher;
+        private Map<String, Object> producerConfig = Collections.emptyMap();
 
         public Builder(Serde<K> keySerde, Serde<V> valueSerde) {
             super(keySerde, valueSerde);
@@ -53,43 +50,18 @@ public interface KafkaSink<K,V> {
             return new Builder(keySerde, valueSerde);
         }
 
-        public Builder<K, V> withTopic(String topic) {
-            this.topic = topic;
+        public Builder<K,V> withProducerConfig(Map<String, Object> producerConfig) {
+            this.producerConfig = producerConfig;
             return this;
         }
 
-        @Override
-        public KafkaSink.Builder<K, V> withPublisher(Flow.Publisher<ProducerRecord<K,V>> p) {
-            this.publisher = p;
+        public Builder<K, V> withSinkTopic(String topic) {
+            this.sinkTopic = topic;
             return this;
         }
 
         public KafkaSink<K,V> build() {
-            return new KafkaSink<K,V>() {
-                @Override
-                public void start() {
-                    p = new KafkaProducer<>(config, keySerde.serializer(), valueSerde.serializer());
-                }
-
-                @Override
-                public void stop() {
-                    p.close();
-                }
-
-                @Override
-                public String topic() {
-                    return topic;
-                }
-
-                @Override
-                public CompletableFuture<RecordMetadata> send(ProducerRecord<K,V> record) {
-                    CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
-                    p.send(record, (m, e) ->
-                        Optional.ofNullable(m).map(_m -> f.complete(_m)).orElse(f.completeExceptionally(e))
-                    );
-                    return f;
-                }
-            };
+            return new SubscriptionSink<>(sinkTopic, new KafkaProducer<K, V>(merge(config, producerConfig), keySerde.serializer(), valueSerde.serializer()));
         }
     }
 }

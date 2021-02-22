@@ -1,14 +1,16 @@
 package com.github.dfauth.reactivestreams;
 
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
+
 import java.util.Optional;
-import java.util.concurrent.Flow;
 
-public abstract class BaseSubscriber<T> implements Flow.Subscriber<T> {
+public abstract class BaseSubscriber<T> implements Subscriber<T> {
 
-    protected Optional<Flow.Subscription> optSubscription = Optional.empty();
+    protected Optional<Subscription> optSubscription = Optional.empty();
 
     @Override
-    public void onSubscribe(Flow.Subscription subscription) {
+    public void onSubscribe(Subscription subscription) {
         optSubscription = Optional.ofNullable(subscription);
     }
 

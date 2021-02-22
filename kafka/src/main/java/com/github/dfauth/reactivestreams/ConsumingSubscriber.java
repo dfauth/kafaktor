@@ -1,6 +1,7 @@
 package com.github.dfauth.reactivestreams;
 
-import java.util.concurrent.Flow;
+import org.reactivestreams.Subscription;
+
 import java.util.function.Consumer;
 
 public class ConsumingSubscriber<I> extends BaseSubscriber<I> {
@@ -16,7 +17,7 @@ public class ConsumingSubscriber<I> extends BaseSubscriber<I> {
     }
 
     @Override
-    public void onSubscribe(Flow.Subscription subscription) {
+    public void onSubscribe(Subscription subscription) {
         super.onSubscribe(subscription);
         subscription.request(Integer.MAX_VALUE);
     }
