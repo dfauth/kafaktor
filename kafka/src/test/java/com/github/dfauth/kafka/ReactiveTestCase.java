@@ -49,7 +49,7 @@ public class ReactiveTestCase {
                     .build();
             sink.start();
             Flux.from(sink).log().subscribe(_r -> rmFuture.complete(_r));
-            Mono.just(MESSAGE).map(_m -> sink.toProducerRecord(_m)).subscribe(sink);
+            Mono.just(MESSAGE).map(sink.messageAdapter()).subscribe(sink);
             try {
                 assertEquals(Collections.singleton(new TopicPartition(TOPIC, 0)), tpFuture.get(3, TimeUnit.SECONDS)); // assert topic partition assignment
                 assertNotNull(rmFuture.get(3, TimeUnit.SECONDS)); // assert metadata returned on publish

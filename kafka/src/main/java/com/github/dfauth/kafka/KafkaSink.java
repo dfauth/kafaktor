@@ -9,6 +9,8 @@ import org.reactivestreams.Processor;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static com.github.dfauth.utils.FunctionUtils.merge;
 
@@ -20,12 +22,12 @@ public interface KafkaSink<K,V> extends Processor<ProducerRecord<K,V>,RecordMeta
 
     String topic();
 
-    default ProducerRecord<K,V> toProducerRecord(V v) {
-        return toProducerRecord(null, v);
+    default Function<V, ProducerRecord<K,V>> messageAdapter() {
+        return v -> tuple2Adapter().apply(null, v);
     }
 
-    default ProducerRecord<K,V> toProducerRecord(K k, V v) {
-        return new ProducerRecord<>(topic(), k, v);
+    default BiFunction<K, V, ProducerRecord<K,V>> tuple2Adapter() {
+        return (k, v) -> new ProducerRecord<>(topic(), k, v);
     }
 
     class Builder<K,V> extends KafkaStream.Builder<KafkaSink.Builder<K,V>,K,V> {

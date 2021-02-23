@@ -7,8 +7,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -29,10 +28,9 @@ public class TestCase {
 
         CompletableFuture<String> f = new CompletableFuture<>();
         String result = embeddedKafkaWithTopic(TOPIC).runTest(p -> {
-            Map<String, Object> props = new HashMap<>(p);
-            props.put(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID);
             KafkaSource.Builder<String, String> builder = KafkaSource.Builder.builder()
-                    .withConfig(props)
+                    .withConfig(p)
+                    .withConsumerConfig(Collections.singletonMap(ConsumerConfig.GROUP_ID_CONFIG, GROUP_ID))
                     .withSourceTopic(TOPIC)
                     .withPartitionAssignmentEventConsumer(c -> e ->
                             logger.info("partition assignment event: {}", e))
@@ -45,7 +43,7 @@ public class TestCase {
             source.start();
             sink.start();
 
-            Mono.just(MESSAGE).map(_m -> sink.toProducerRecord(_m)).subscribe(sink);
+            Mono.just(MESSAGE).map(sink.messageAdapter()).subscribe(sink);
             Flux.from(sink).log();
             try {
                 return f.get(100, TimeUnit.SECONDS);
