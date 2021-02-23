@@ -8,6 +8,7 @@ import org.apache.kafka.common.serialization.Serdes;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
@@ -26,13 +27,13 @@ public interface KafkaSource {
     class Builder<K,V> extends KafkaStream.Builder<KafkaSource.Builder<K,V>,K,V> {
 
         protected Collection<String> sourceTopics;
-        private Map<String, Object> consumerConfig = Collections.emptyMap();
+        private Map<String, Object> consumerConfig = new HashMap();
 
         public static Builder<String,String> builder() {
             return builder(Serdes.String(), Serdes.String());
         }
 
-        public static <V> Builder<String,V> stringKeyBuilder(Serde<V> valueSerde) {
+        public static <V> Builder<String,V> builder(Serde<V> valueSerde) {
             return builder(Serdes.String(), valueSerde);
         }
 
@@ -124,7 +125,7 @@ public interface KafkaSource {
         }
 
         public Builder<K, V> withGroupId(String groupId) {
-            this.config.compute(ConsumerConfig.GROUP_ID_CONFIG, (k, v) -> {
+            this.consumerConfig.compute(ConsumerConfig.GROUP_ID_CONFIG, (k, v) -> {
                 if(v != null) {
                     logger.warn("overriding previous {} of {} with {}", k,v,groupId);
                 }

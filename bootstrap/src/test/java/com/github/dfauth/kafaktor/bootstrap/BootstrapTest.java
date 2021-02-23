@@ -9,9 +9,9 @@ import com.github.dfauth.actor.kafka.guice.CommonModule;
 import com.github.dfauth.actor.kafka.guice.MyModules;
 import com.github.dfauth.actor.kafka.guice.TestModule;
 import com.github.dfauth.kafaktor.bootstrap.avro.SayHello;
-import com.github.dfauth.kafka.RecoveryStrategies;
 import com.github.dfauth.kafka.KafkaSink;
 import com.github.dfauth.kafka.KafkaSource;
+import com.github.dfauth.kafka.RecoveryStrategies;
 import com.github.dfauth.reactivestreams.ConsumingSubscriber;
 import com.github.dfauth.reactivestreams.OneTimePublisher;
 import com.google.inject.Guice;
@@ -26,6 +26,8 @@ import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -41,7 +43,6 @@ import java.util.function.Function;
 import static com.github.dfauth.actor.kafka.avro.AddressDespatchable.toAddressDespatchable;
 import static com.github.dfauth.kafaktor.bootstrap.Bootstrapper.name;
 import static com.github.dfauth.kafka.KafkaTestUtil.embeddedKafkaWithTopic;
-import static com.github.dfauth.trycatch.Try.tryWith;
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 import static com.github.dfauth.utils.ConfigBuilder.builder;
 import static com.github.dfauth.utils.ConfigBuilder.builderFrom;
@@ -83,12 +84,12 @@ public class BootstrapTest {
                     envelopeTransformer()
                     );
 
-            Publisher publisher =  new Publisher() {
+            KafkaSink<String, ActorMessage> sink = KafkaSink.Builder.builder(envelopeHandler.envelopeSerde())
+                    .withConfig(p)
+                    .withSinkTopic(TOPIC).build();
+            sink.start();
 
-                KafkaSink.Builder<String, ActorMessage> builder = KafkaSink.Builder.builder(envelopeHandler.envelopeSerde())
-                        .withConfig(p)
-                        .withTopic(TOPIC)
-                        .withPublisher(this).build().start();
+            Publisher publisher =  new Publisher() {
 
                 @Override
                 public <R, T> CompletableFuture<RecordMetadata> publish(KafkaActorRef<R,?> recipient, R msg, Optional<KafkaActorRef<T,?>> optSender) {
@@ -96,23 +97,19 @@ public class BootstrapTest {
                         ActorMessage payload = optSender
                                 .map(s -> envelopeHandler.envelope(recipient.toAddress(), s.toAddress(), (SpecificRecordBase) msg))
                                 .orElse(envelopeHandler.envelope(recipient.toAddress(), (SpecificRecordBase) msg));
-                        CompletableFuture<RecordMetadata> f = source.send(payload.getRecipient().getTopic(), payload.getRecipient().getKey(), payload);
-                        f.handle(tryWith()).thenApply(_try ->
-                            _try.recover(e -> {
-                                logger.error(e.getMessage(), e);
-                            }).accept(m ->
-                                logger.info("successfully published key: {}, value{} to topic: {}, partition: {}, offset: {}",payload.getRecipient(), payload, m.topic(),m.partition(),m.offset())
-                            )
-                        );
+                        Mono.just(new ProducerRecord<>(payload.getRecipient().getTopic(), payload.getRecipient().getKey(), payload))
+                        .subscribe(sink);
+                        CompletableFuture<RecordMetadata> f = new CompletableFuture<>();
+                        Flux.from(sink).subscribe(r -> f.complete(r));
                         return f;
                     });
                 }
             };
 
             //                    .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
-            KafkaSource.Builder<String, ActorMessage> builder1 = KafkaSource.Builder.stringKeyBuilder(envelopeHandler.envelopeSerde())
+            KafkaSource.Builder<String, ActorMessage> builder1 = KafkaSource.Builder.builder(envelopeHandler.envelopeSerde())
                     .withConfig(p)
-                    .withTopic(TOPIC)
+                    .withSourceTopic(TOPIC)
                     .withGroupId(this.getClass().getCanonicalName())
 //                    .withKeyFilter(n -> n.equals(this.getClass().getCanonicalName()))
                     .withRecordProcessor(bootstrapper)
@@ -139,7 +136,7 @@ public class BootstrapTest {
 
             SayHello sayHello = SayHello.newBuilder().setName("Fred").build();
             ActorMessage e = envelopeHandler.envelope(toAddressDespatchable(TOPIC, "/HelloWorldMain.SayHello"), toAddressDespatchable(TOPIC, "sender"), sayHello);
-            KafkaSink sink = builder1.withPublisher(OneTimePublisher.of(new ProducerRecord<>(e.getRecipient().getTopic(), e.getRecipient().getKey(), e))).build();
+            OneTimePublisher.of(new ProducerRecord<>(e.getRecipient().getTopic(), e.getRecipient().getKey(), e)).subscribe(builder1.withSinkTopic(TOPIC).build());
             sink.subscribe(ConsumingSubscriber.of(m -> logger.info("metadata: {}",m)));
 
             Thread.sleep(5 * 1000);

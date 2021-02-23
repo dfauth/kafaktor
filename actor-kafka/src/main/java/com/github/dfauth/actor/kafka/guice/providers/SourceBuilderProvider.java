@@ -19,7 +19,7 @@ public class SourceBuilderProvider implements Provider<KafkaSource.Builder<Strin
 
     @Inject
     public SourceBuilderProvider(Config config) {
-        sourceBuilder = KafkaSource.Builder.stringKeyBuilder(Serdes.ByteArray());
+        sourceBuilder = KafkaSource.Builder.builder(Serdes.ByteArray());
         Map<String, Object> props = config.getConfig("kafka").entrySet().stream().reduce(new HashMap<>(),
                 accumulateMap(e -> e.getKey(), e -> e.getValue()),
                 combineMap());

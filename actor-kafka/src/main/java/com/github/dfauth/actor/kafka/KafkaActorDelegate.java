@@ -66,7 +66,7 @@ public class KafkaActorDelegate<T extends SpecificRecordBase> implements ActorDe
             }).toOptional().orElse(r.offset()+1);
 
             KafkaSource source = sourceBuilder
-                    .withTopic(myConfig.getTopic())
+                    .withSourceTopic(myConfig.getTopic())
                             .withRecordProcessor(c1)
                             .withGroupId("fred")
                     .withKeyFilter(k -> k.equals("fred"))
