@@ -33,7 +33,7 @@ public class TestCase {
     }
 
     @Test
-    public void testIt() throws InterruptedException {
+    public void testIt() {
         Behavior<Command> behavior = Behaviors.setup(ctx -> toBehavior(new CommandHandler(){
             @Override
             public Optional<Behavior<Command>> handleCreate(CreateCommand c) {

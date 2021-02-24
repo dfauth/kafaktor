@@ -26,10 +26,12 @@ public interface AssignmentListener extends Consumer<AssignmentListener.Partitio
             return partitions;
         }
 
-        public void onAssigment(Consumer<Collection<TopicPartition>> consumer) {
+        public PartitionAssignmentEvent onAssigment(Consumer<Collection<TopicPartition>> consumer) {
+            return this;
         }
 
-        public void onRevocation(Consumer<Collection<TopicPartition>> consumer) {
+        public PartitionAssignmentEvent onRevocation(Consumer<Collection<TopicPartition>> consumer) {
+            return this;
         }
     }
 
@@ -40,8 +42,9 @@ public interface AssignmentListener extends Consumer<AssignmentListener.Partitio
         }
 
         @Override
-        public void onAssigment(Consumer<Collection<TopicPartition>> consumer) {
+        public PartitionsAssignedEvent onAssigment(Consumer<Collection<TopicPartition>> consumer) {
             consumer.accept(partitions());
+            return this;
         }
     }
 
@@ -52,8 +55,9 @@ public interface AssignmentListener extends Consumer<AssignmentListener.Partitio
         }
 
         @Override
-        public void onRevocation(Consumer<Collection<TopicPartition>> consumer) {
+        public PartitionAssignmentEvent onRevocation(Consumer<Collection<TopicPartition>> consumer) {
             consumer.accept(partitions());
+            return this;
         }
     }
 }

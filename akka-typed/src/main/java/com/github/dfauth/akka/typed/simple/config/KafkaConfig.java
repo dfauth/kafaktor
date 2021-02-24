@@ -47,6 +47,7 @@ public class KafkaConfig {
         ));
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends SpecificRecordBase> AvroSerializer<T> avroSerializer() {
         return (AvroSerializer<T>) AvroSerializer.builder()
                 .withAutoRegisterSchema(isAutoRegisterSchema())
@@ -55,6 +56,7 @@ public class KafkaConfig {
                 .build();
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends SpecificRecordBase> AvroDeserializer<T> avroDeserializer() {
         return (AvroDeserializer<T>) AvroDeserializer.builder()
                 .withAutoRegisterSchema(isAutoRegisterSchema())

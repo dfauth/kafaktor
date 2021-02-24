@@ -1,15 +1,18 @@
 package com.github.dfauth.kafka;
 
+import com.github.dfauth.partial.Unit;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+
+import static com.github.dfauth.partial.Unit.UNIT;
 
 public interface KafkaConsumerAware<K, V, T> {
     T withKafkaConsumer(KafkaConsumer<K, V> consumer);
 
-    interface Consumer<K,V> extends KafkaConsumerAware<K,V,Void> {
+    interface Consumer<K,V> extends KafkaConsumerAware<K,V, Unit> {
         @Override
-        default Void withKafkaConsumer(KafkaConsumer<K, V> c) {
+        default Unit withKafkaConsumer(KafkaConsumer<K, V> c) {
             acceptKafkaConsumer(c);
-            return null;
+            return UNIT;
         }
 
         void acceptKafkaConsumer(KafkaConsumer<K, V> c);
