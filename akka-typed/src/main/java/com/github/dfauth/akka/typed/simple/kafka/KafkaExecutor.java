@@ -16,6 +16,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -24,12 +27,13 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 
-public class KafkaExecutor extends ExecutorServiceConfigurator implements Function<ConsumerRecord<String, ActorMessage>, Long> {
+public class KafkaExecutor extends ExecutorServiceConfigurator implements Function<ConsumerRecord<String, ActorMessage>, CompletableFuture<Long>> {
 
     private static final Logger logger = LoggerFactory.getLogger(KafkaExecutor.class);
     private final KafkaConfig kafkaConfig;
-    private final ExecutorService executorService = Executors.newCachedThreadPool();
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private String name;
+    private Map<String, ConsumerRecord<String, ActorMessage>> mbox = new HashMap();
 
     public KafkaExecutor(Config config, DispatcherPrerequisites prerequisites) {
         super(config, prerequisites);
@@ -60,8 +64,9 @@ public class KafkaExecutor extends ExecutorServiceConfigurator implements Functi
     }
 
     @Override
-    public Long apply(ConsumerRecord<String, ActorMessage> r) {
-        return r.offset();
+    public CompletableFuture<Long> apply(ConsumerRecord<String, ActorMessage> r) {
+        mbox.put(r.value().getRecipient().getKey(),r);
+        return CompletableFuture.completedFuture(r.offset());
     }
 
 }

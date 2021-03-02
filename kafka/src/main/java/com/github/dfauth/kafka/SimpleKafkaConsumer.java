@@ -1,6 +1,5 @@
 package com.github.dfauth.kafka;
 
-import com.github.dfauth.trycatch.TryCatch;
 import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.WakeupException;
@@ -13,30 +12,33 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
 
-class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, KafkaSource {
+
+class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, KafkaSource, ConsumerRecordOps {
 
     private final Logger logger = LoggerFactory.getLogger(SimpleKafkaConsumer.class);
 
     private final KafkaConsumer<K,V> consumer;
-    private final Map<TopicPartition, OffsetAndMetadata> offsetsToCommit = new HashMap<>();
+    private final Map<TopicPartition, CompletableFuture<OffsetAndMetadata>> offsetsToCommit = new HashMap<>();
     private final AtomicBoolean stopped = new AtomicBoolean(false);
     private final Collection<String> topics;
     private Instant lastCommitTime = Instant.now();
     private final Predicate<ConsumerRecord<K,V>> predicate;
-    private final Function<ConsumerRecord<K,V>, Long> recordProcessingFunction;
+    private final Function<ConsumerRecord<K,V>, CompletableFuture<Long>> recordProcessor;
     private Duration pollingDuration;
     private Duration maxOffsetCommitInterval;
     private PartitionAssignmentEventConsumer<K,V> partitionAssignmentEventConsumer;
 
-    SimpleKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, Predicate<ConsumerRecord<K, V>> predicate, Function<ConsumerRecord<K, V>, Long> recordProcessingFunction, Duration pollingDuration, Duration maxOffsetCommitInterval, PartitionAssignmentEventConsumer<K,V> partitionAssignmentEventConsumer) {
+    SimpleKafkaConsumer(Map<String, Object> config, Collection<String> topics, Serde<K> keySerde, Serde<V> valueSerde, Predicate<ConsumerRecord<K, V>> predicate, Function<ConsumerRecord<K, V>, CompletableFuture<Long>> recordProcessor, Duration pollingDuration, Duration maxOffsetCommitInterval, PartitionAssignmentEventConsumer<K,V> partitionAssignmentEventConsumer) {
         this.topics = topics;
         this.predicate = predicate;
-        this.recordProcessingFunction = recordProcessingFunction;
+        this.recordProcessor = recordProcessor;
         this.pollingDuration = pollingDuration;
         this.maxOffsetCommitInterval = maxOffsetCommitInterval;
         this.partitionAssignmentEventConsumer = partitionAssignmentEventConsumer;
@@ -47,7 +49,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, K
     }
 
     public void start() {
-        TryCatch.tryCatch(() -> consumer.subscribe(topics, this));
+        tryCatch(() -> consumer.subscribe(topics, this));
         new Thread(null, this, this.getClass().getSimpleName()+"-pollingThread-"+topics).start();
     }
 
@@ -59,13 +61,13 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, K
                 records.partitions().stream().forEach(tp ->
                     records.records(tp).stream()
                             .filter(predicate)
-                            .map(recordProcessingFunction)
-                            .forEach(o ->
+                            .map(recordProcessor)
+                            .forEach(f ->
                         offsetsToCommit.compute(tp, (k,v) -> v == null ?
-                                new OffsetAndMetadata(o) :
-                                new OffsetAndMetadata(o, v.leaderEpoch(), v.metadata()))
+                                f.thenApply(o -> new OffsetAndMetadata(o)) :
+                                f.thenCompose(o -> v.thenApply(_v -> new OffsetAndMetadata(o, _v.leaderEpoch(), _v.metadata())))
                     )
-                );
+                ));
                 commitOffsets();
             }
         } catch (WakeupException we) {
@@ -82,7 +84,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, K
             Instant now = Instant.now();
             if (lastCommitTime.plus(maxOffsetCommitInterval).isBefore(now)) {
                 if(!offsetsToCommit.isEmpty()) {
-                    consumer.commitSync(offsetsToCommit);
+                    consumer.commitSync(filterCompletedOffsets(offsetsToCommit));
                     offsetsToCommit.clear();
                 }
                 lastCommitTime = now;
@@ -93,14 +95,13 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, K
         }
     }
 
-
     @Override
     public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
 
         // 3. collect offsets for revoked partitions
-        Map<TopicPartition, OffsetAndMetadata> revokedPartitionOffsets = new HashMap<>();
+        Map<TopicPartition, CompletableFuture<OffsetAndMetadata>> revokedPartitionOffsets = new HashMap<>();
         partitions.forEach( partition -> {
-            OffsetAndMetadata offset = offsetsToCommit.remove(partition);
+            CompletableFuture<OffsetAndMetadata> offset = offsetsToCommit.remove(partition);
             if (offset != null) {
                 revokedPartitionOffsets.put(partition, offset);
             }
@@ -108,7 +109,7 @@ class SimpleKafkaConsumer<K,V> implements Runnable, ConsumerRebalanceListener, K
 
         // 4. commit offsets for revoked partitions
         try {
-            consumer.commitSync(revokedPartitionOffsets);
+            consumer.commitSync(filterCompletedOffsets(revokedPartitionOffsets));
         } catch (RuntimeException e) {
             logger.warn("Failed to commit offsets for revoked partitions: "+e.getMessage(), e);
         }

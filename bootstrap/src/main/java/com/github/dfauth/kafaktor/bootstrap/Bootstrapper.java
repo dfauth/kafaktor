@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import static com.github.dfauth.kafaktor.bootstrap.ActorKey.toActorKey;
@@ -59,17 +60,17 @@ public interface Bootstrapper<K,V> extends ConsumerRecordProcessor<K,V> {
         }
 
         @Override
-        public Offset process(ConsumerRecord<K, V> r) {
+        public CompletableFuture<Offset> process(ConsumerRecord<K, V> r) {
             logger.info("received consumer record: {}", r);
             Offset result = () -> r.offset() + 1;
             return Optional.ofNullable(instances.get(name(r)))
                     .map(ctx -> tryCatch(() -> {
                             ctx.processMessage(toActorKey((String) r.key()), recordTransformer.apply(r));
-                            return result;
-                        }, ignored -> result)
+                            return CompletableFuture.completedFuture(result);
+                        }, ignored -> CompletableFuture.completedFuture(result))
                     ).orElseGet(() -> {
                         logger.error("No actor found for key {}",r.key());
-                        return result;
+                        return CompletableFuture.completedFuture(result);
             });
         }
 

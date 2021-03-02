@@ -1,6 +1,5 @@
 package com.github.dfauth.kafka;
 
-import com.github.dfauth.trycatch.TryCatch;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,10 +8,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
-public class Task<K,V> implements Runnable {
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
+
+public class Task<K,V> implements Runnable, ConsumerRecordOps {
 
     private static final Logger logger = LoggerFactory.getLogger(Task.class);
 
@@ -23,11 +23,13 @@ public class Task<K,V> implements Runnable {
     private final CompletableFuture<Long> completion = new CompletableFuture<>();
     private final ReentrantLock startStopLock = new ReentrantLock();
     private final AtomicLong currentOffset = new AtomicLong();
-    private final Function<ConsumerRecord<K,V>, Long> recordProcessor;
+    private final RecordProcessor<K,V> recordProcessor;
 
-    public Task(java.util.stream.Stream<ConsumerRecord<K,V>> records, Function<ConsumerRecord<K,V>, Long> recordProcessor) {
+    public Task(java.util.stream.Stream<ConsumerRecord<K,V>> records, RecordProcessor<K,V> recordProcessor) {
         this.records = records;
-        this.recordProcessor = record -> TryCatch.tryCatch(() -> recordProcessor.apply(record), e -> record.offset()+1);
+        this.recordProcessor = record -> tryCatch(() -> {
+            return recordProcessor.apply(record);
+        }, e -> CompletableFuture.completedFuture(record.offset()+1));
     }
 
     public void run() {
@@ -40,7 +42,10 @@ public class Task<K,V> implements Runnable {
         
         records.filter(r -> !stopped)
                .map(recordProcessor)
-               .forEach(offset -> currentOffset.set(offset));
+               .filter(o -> o.isDone())
+               .forEach(offset -> tryCatch(() -> {
+                   currentOffset.set(offset.get());
+               }));
 
         finished = true;
         completion.complete(currentOffset.get());

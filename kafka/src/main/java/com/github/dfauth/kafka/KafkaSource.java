@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -43,9 +44,9 @@ public interface KafkaSource {
 
         private Duration maxOffsetCommitInterval = Duration.ofMillis(5000);
         private Duration pollingDuration = Duration.ofMillis(100);
-        private Function<ConsumerRecord<K, V>, Long> recordProcessingFunction = record -> {
+        private RecordProcessor<K,V> recordProcessor = record -> {
             logger.info("received record {} -> {} on topic: {}, partition: {}, offset: {}",record.key(), record.value(),record.topic(), record.partition(), record.offset());
-            return record.offset() + 1;
+            return CompletableFuture.completedFuture(record.offset() + 1);
         };
         private ExecutorService executor;
         private PartitionAssignmentEventConsumer<K,V> topicPartitionConsumer = c -> tp -> {};
@@ -85,12 +86,12 @@ public interface KafkaSource {
         public Builder<K, V> withRecordConsumer(Consumer<ConsumerRecord<K,V>> recordConsumer) {
             return withRecordProcessor(r -> tryCatch(() -> {
                 recordConsumer.accept(r);
-                return r.offset() + 1;
-            }, e -> r.offset()+1));
+                return CompletableFuture.completedFuture(r.offset() + 1);
+            }, ignored -> CompletableFuture.completedFuture(r.offset() + 1)));
         }
 
-        public Builder<K, V> withRecordProcessor(Function<ConsumerRecord<K,V>,Long> recordProcessor) {
-            this.recordProcessingFunction = recordProcessor;
+        public Builder<K, V> withRecordProcessor(RecordProcessor<K,V> recordProcessor) {
+            this.recordProcessor = recordProcessor;
             return this;
         }
 
@@ -136,8 +137,8 @@ public interface KafkaSource {
 
         public KafkaSource build() {
             return executor != null ?
-                    new MultithreadedKafkaConsumer<>(merge(config, consumerConfig), sourceTopics, keySerde, valueSerde, executor, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
-                    new SimpleKafkaConsumer<>(merge(config, consumerConfig), sourceTopics, keySerde, valueSerde, predicate, recordProcessingFunction, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
+                    new MultithreadedKafkaConsumer<>(merge(config, consumerConfig), sourceTopics, keySerde, valueSerde, executor, predicate, recordProcessor, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer) :
+                    new SimpleKafkaConsumer<>(merge(config, consumerConfig), sourceTopics, keySerde, valueSerde, predicate, recordProcessor, pollingDuration, maxOffsetCommitInterval, topicPartitionConsumer);
         }
 
     }

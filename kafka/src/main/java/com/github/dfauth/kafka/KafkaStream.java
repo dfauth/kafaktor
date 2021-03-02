@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -70,7 +71,7 @@ public interface KafkaStream {
                     .withConfig(config);
         }
 
-        public KafkaSource.Builder<K,V> withRecordProcessor(Function<ConsumerRecord<K,V>,Long> f) {
+        public KafkaSource.Builder<K,V> withRecordProcessor(Function<ConsumerRecord<K,V>, CompletableFuture<Long>> f) {
             return KafkaSource.Builder.builder(keySerde, valueSerde)
                     .withRecordProcessor(f)
                     .withConfig(config);

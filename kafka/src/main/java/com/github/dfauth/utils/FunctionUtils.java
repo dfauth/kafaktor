@@ -11,6 +11,12 @@ import java.util.stream.Stream;
 
 public class FunctionUtils {
 
+    public static <V> List<V> merge(List<V> l, V v) {
+        List<V> tmp = new ArrayList<>(l);
+        tmp.add(v);
+        return tmp;
+    }
+
     public static <K,V> Map<K,V> merge(Map<K,V> m, K k, V v) {
         Map<K, V> tmp = new HashMap<>(m);
         tmp.merge(k,v, (_k, _v) -> v);
@@ -85,6 +91,13 @@ public class FunctionUtils {
     public static <T> BiFunction<List<T>, T, List<T>> accumulateList() {
         return (acc, t) -> {
             acc.add(t);
+            return acc;
+        };
+    }
+
+    public static <T,R> BiFunction<List<R>, T, List<R>> accumulateList(Function<T,R> f) {
+        return (acc, t) -> {
+            acc.add(f.apply(t));
             return acc;
         };
     }

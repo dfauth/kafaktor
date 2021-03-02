@@ -1,14 +1,15 @@
 package com.github.dfauth.actor.kafka;
 
+import com.github.dfauth.kafka.RecordProcessor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
-import java.util.function.Function;
+import java.util.concurrent.CompletableFuture;
 
-public interface ConsumerRecordProcessor<K, V> extends Function<ConsumerRecord<K, V>, Long> {
+public interface ConsumerRecordProcessor<K, V> extends RecordProcessor<K, V> {
     @Override
-    default Long apply(ConsumerRecord<K, V> r) {
-        return process(r).next();
+    default CompletableFuture<Long> apply(ConsumerRecord<K, V> r) {
+        return process(r).thenApply(o -> o.next());
     }
 
-    Offset process(ConsumerRecord<K, V> r);
+    CompletableFuture<Offset> process(ConsumerRecord<K, V> r);
 }
