@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.github.dfauth.trycatch.TryCatch.tryCatch;
@@ -39,13 +40,14 @@ public class Task<K,V> implements Runnable, ConsumerRecordOps {
         }
         started = true;
         startStopLock.unlock();
-        
+
         records.filter(r -> !stopped)
-               .map(recordProcessor)
-               .filter(o -> o.isDone())
-               .forEach(offset -> tryCatch(() -> {
-                   currentOffset.set(offset.get());
-               }));
+                .map(recordProcessor)
+                .collect(Collectors.toList())
+                .stream()
+                .forEach(f -> tryCatch(() -> {
+                    currentOffset.set(f.get());
+                }));
 
         finished = true;
         completion.complete(currentOffset.get());
