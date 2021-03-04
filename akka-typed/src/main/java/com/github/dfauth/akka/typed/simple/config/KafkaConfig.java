@@ -83,4 +83,7 @@ public class KafkaConfig {
         return wrap(config).getBoolean("autoRegisterSchema").orElse(true);
     }
 
+    public int actorMessageQueueCapacity() {
+        return wrap(config).getInt("message.queue.capacity").orElse(8);
+    }
 }

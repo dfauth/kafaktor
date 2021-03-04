@@ -8,37 +8,31 @@ import akka.dispatch.MessageQueue;
 import com.typesafe.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Option;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.function.Consumer;
 
-public class SimpleMailbox implements MailboxType {
+public class SimpleMailbox extends MailboxConverter implements MailboxType {
 
     private static final Logger logger = LoggerFactory.getLogger(SimpleMailbox.class);
 
-    private akka.actor.ActorSystem.Settings settings;
-    private com.typesafe.config.Config config;
+    private Map<String,MessageQueue> queues = new HashMap<>();
 
     public SimpleMailbox(ActorSystem.Settings settings, Config config) {
-        this.settings = settings;
-        this.config = config;
+        super(settings, config);
     }
 
     @Override
-    public MessageQueue create(Option<ActorRef> owner, Option<ActorSystem> system) {
+    protected MessageQueue create(Optional<ActorRef> optOwner, Optional<ActorSystem> system) {
+        return optOwner
+                .map(o -> queues.computeIfAbsent(o.path().name(), k -> createMessageQueue(k)))
+                .orElse(createMessageQueue("none"));
+    }
 
-        String _owner = owner.map(r ->
-            r.path().name()
-        ).getOrElse(() -> "none");
-
-        Consumer<Envelope> logOwner = e -> owner.foreach(r -> {
-            logger.info("owner is {} message is {} sender is {}", r.path().name(), e.message(), e.sender());
-            return null;
-        });
-
+    private MessageQueue createMessageQueue(String _owner) {
         BlockingQueue<Envelope> q = new ArrayBlockingQueue<>(10);
         return new MessageQueue() {
             @Override
@@ -69,7 +63,9 @@ public class SimpleMailbox implements MailboxType {
             public Envelope dequeue() {
                 logger.info("dequeue peek: {} owner: {}",q.peek(),_owner);
                 Optional<Envelope> e = Optional.ofNullable(q.poll());
-                e.ifPresent(logOwner);
+                e.ifPresent(_e ->
+                        logger.info("owner is {} message is {} sender is {}", _owner, _e.message(), _e.sender())
+                );
                 return e.orElse(null);
             }
         };
