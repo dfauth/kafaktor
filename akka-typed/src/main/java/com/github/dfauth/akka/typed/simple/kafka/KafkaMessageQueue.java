@@ -40,8 +40,8 @@ public class KafkaMessageQueue implements MessageQueue {
         Optional<Envelope> optEnvelope = Optional.of(queue.peek() == null ? null : queue.remove());
         return optEnvelope.map(e -> {
             Tuple2<CompletableFuture<Long>, ConsumerRecord<String, ActorMessage>> t = ((Tuple2) e.message());
-            t._1().complete(t._2().offset()+1);
-            return Envelope.apply(t._2(), null);
+            Transaction.Monitor.currentTransaction().onComplete(t._1(), () -> t._2().offset()+1);
+            return Envelope.apply(t._2().value(), null);
         }).orElse(null);
     }
 

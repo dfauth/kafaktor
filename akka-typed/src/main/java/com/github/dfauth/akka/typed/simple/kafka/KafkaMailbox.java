@@ -28,6 +28,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
+import static com.github.dfauth.function.Function2.peek;
+import static com.github.dfauth.trycatch.TryCatch.tryCatch;
+
 
 public class KafkaMailbox extends MailboxConverter implements MailboxType, RecordProcessor<String, ActorMessage> {
 
@@ -70,7 +73,13 @@ public class KafkaMailbox extends MailboxConverter implements MailboxType, Recor
     @Override
     public CompletableFuture<Long> apply(ConsumerRecord<String, ActorMessage> r) {
         CompletableFuture<Long> f = CompletableFuture.completedFuture(r.offset());
-        Optional.ofNullable(mailboxes.get(r.key())).ifPresent(ref -> ref.tell(Tuple2.of(f,r.value()),null));
+        tryCatch(() ->
+                Optional.ofNullable(mailboxes.get(r.key()))
+                        .map(peek(ref -> ref.tell(Tuple2.of(f,r),mailboxes.get(r.value().getSender().getKey()))))
+                        .orElseThrow(() -> new IllegalStateException("No mailbox found for "+r.key())),
+                t -> {
+                    f.completeExceptionally(t);
+                });
         return f;
     }
 }
